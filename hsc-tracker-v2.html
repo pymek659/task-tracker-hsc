@@ -465,11 +465,17 @@ function rebuildTrackers(){
   const g=document.getElementById("tracker-grid");g.innerHTML="";
   if(!subjects.length){
     const empty=document.createElement("div");
-    empty.style.cssText="grid-column:1/-1;text-align:center;padding:60px 20px;";
-    empty.innerHTML=`<div style="font-size:36px;margin-bottom:16px;">🗂️</div><div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--text);margin-bottom:8px;">No subjects yet</div><div style="font-size:12px;color:var(--muted);letter-spacing:0.06em;">Click the card below to add your first subject</div>`;
+    empty.style.cssText="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:28px;";
+    empty.innerHTML=`<div style="text-align:center;"><div style="font-size:36px;margin-bottom:16px;">🗂️</div><div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--text);margin-bottom:8px;">No subjects yet</div><div style="font-size:12px;color:var(--muted);letter-spacing:0.06em;">Add your first subject to get started</div></div>`;
+    const addCard=makeAddSubCard("tracker");
+    addCard.style.cssText="width:100%;max-width:320px;";
+    empty.appendChild(addCard);
     g.appendChild(empty);
-  }else{subjects.forEach((sub,i)=>{g.appendChild(makeTrackerCard(sub,i));renderTrackerCard(sub);});}
-  g.appendChild(makeAddSubCard("tracker"));updateGlobal();applySettings();
+  }else{
+    subjects.forEach((sub,i)=>{g.appendChild(makeTrackerCard(sub,i));renderTrackerCard(sub);});
+    g.appendChild(makeAddSubCard("tracker"));
+  }
+  updateGlobal();applySettings();
 }
 function makeTrackerCard(sub,i){const c=document.createElement("div");c.className="card";c.id="tc-"+sub.id;c.style.animationDelay=(i*55)+"ms";if(!cardMode[sub.id])cardMode[sub.id]="tl";c.innerHTML=`<div class="card-hd"><span class="sub-dot" style="background:${sub.color}" onclick="openSubModal('${sub.id}')"></span><h2>${escH(sub.name)}</h2><button class="icon-btn" onclick="openSubModal('${sub.id}')">${IC.edit}</button></div><div class="conf-bar" id="cb-${sub.id}"><div class="conf-label">Subject confidence</div><div class="conf-track"><div class="cs g" id="cbg-${sub.id}" style="width:0%"></div><div class="cs a" id="cba-${sub.id}" style="width:0%"></div><div class="cs r" id="cbr-${sub.id}" style="width:0%"></div></div></div><div class="task-list" id="tl-${sub.id}"></div><div class="add-area"><div class="type-picker" id="tp-${sub.id}"><button class="tpick sel-tl" id="tpb-tl-${sub.id}" onclick="setMode('${sub.id}','tl')">🚦 Traffic light</button><button class="tpick" id="tpb-normal-${sub.id}" onclick="setMode('${sub.id}','normal')">✅ Normal</button><button class="tpick" id="tpb-checklist-${sub.id}" onclick="setMode('${sub.id}','checklist')">📋 Checklist</button></div><div class="add-form" id="af-${sub.id}"><input class="add-inp" id="ai-${sub.id}" type="text" placeholder="Task name..." maxlength="120" onkeydown="if(event.key==='Enter')addTask('${sub.id}');if(event.key==='Escape')closeAddForm('${sub.id}')"><div class="add-dt-row" id="adr-${sub.id}"><span class="dt-lbl">Due</span><input class="add-date" id="add-${sub.id}" type="date"><input class="add-time" id="atm-${sub.id}" type="time"></div><div class="add-actions"><button class="btn-cancel" onclick="closeAddForm('${sub.id}')">Cancel</button><button class="btn-confirm" onclick="addTask('${sub.id}')">Add task</button></div></div><button class="add-open-btn" id="aob-${sub.id}" onclick="openAddForm('${sub.id}')">${IC.plus} Add task</button></div>`;return c;}
 function makeAddSubCard(ctx){const ac=document.createElement("div");ac.className="add-sub-card";ac.id=ctx+"-add-sub";ac.innerHTML=`<div class="add-sub-plus">+</div><div class="add-sub-lbl">Add subject</div>`;ac.onclick=()=>showNewSubForm(ctx);return ac;}
