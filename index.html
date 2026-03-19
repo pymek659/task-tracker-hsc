@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HSC Task Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#f5f2ec;--surface:#fff;--surface2:#f0ece4;--border:#e0d9cf;
+  --text:#1a1814;--muted:#9a9080;--sidebar:#1a1814;
+  --green:#16a34a;--blue:#2563eb;--purple:#7c3aed;--amber:#d97706;--red:#d93636;--orange:#f97316;
+}
+body{font-family:"DM Mono",monospace;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── GRAIN OVERLAY ── */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:0.025;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size:200px;}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:50;padding:0 48px;height:60px;display:flex;align-items:center;justify-content:space-between;background:rgba(245,242,236,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+.nav-logo{font-family:"Instrument Serif",serif;font-size:18px;font-weight:400;display:flex;align-items:center;gap:10px;}
+.nav-logo span{font-style:italic;color:var(--muted);}
+.nav-cta{padding:8px 20px;background:var(--text);color:var(--bg);border:none;border-radius:10px;font-family:"DM Mono",monospace;font-size:12px;cursor:pointer;letter-spacing:0.06em;transition:opacity 0.15s;}
+.nav-cta:hover{opacity:0.78;}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:120px 48px 80px;text-align:center;position:relative;}
+.hero-eyebrow{font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);margin-bottom:28px;display:flex;align-items:center;gap:10px;}
+.hero-eyebrow::before,.hero-eyebrow::after{content:"";flex:1;max-width:40px;height:1px;background:var(--border);}
+.hero-title{font-family:"Instrument Serif",serif;font-size:clamp(48px,8vw,96px);font-weight:400;line-height:1;letter-spacing:-3px;margin-bottom:28px;max-width:900px;}
+.hero-title em{font-style:italic;color:var(--muted);}
+.hero-sub{font-size:14px;color:var(--muted);line-height:1.8;max-width:460px;margin:0 auto 52px;letter-spacing:0.03em;}
+.hero-actions{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;}
+.btn-primary{padding:14px 36px;background:var(--text);color:var(--bg);border:none;border-radius:12px;font-family:"DM Mono",monospace;font-size:13px;cursor:pointer;letter-spacing:0.08em;transition:opacity 0.15s,transform 0.15s;display:inline-flex;align-items:center;gap:8px;}
+.btn-primary:hover{opacity:0.82;transform:translateY(-1px);}
+.btn-secondary{padding:14px 28px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:12px;font-family:"DM Mono",monospace;font-size:13px;cursor:pointer;letter-spacing:0.06em;transition:all 0.15s;}
+.btn-secondary:hover{border-color:var(--text);color:var(--text);}
+.hero-scroll{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:8px;animation:float 2.4s ease-in-out infinite;}
+.hero-scroll::after{content:"";width:1px;height:28px;background:var(--border);}
+@keyframes float{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(6px)}}
+
+/* ── PREVIEW STRIP ── */
+.preview-strip{padding:0 48px 100px;display:flex;justify-content:center;}
+.preview-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 32px;max-width:720px;width:100%;box-shadow:0 4px 40px rgba(26,24,20,0.06);}
+.preview-topbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--border);}
+.preview-dot{width:10px;height:10px;border-radius:50%;}
+.preview-title{font-family:"Instrument Serif",serif;font-size:15px;font-style:italic;color:var(--muted);flex:1;text-align:center;}
+.preview-subjects{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.preview-subject{border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;}
+.preview-subject::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;}
+.ps-eco::before{background:#2563eb;} .ps-eng::before{background:#7c3aed;} .ps-maths::before{background:#0891b2;} .ps-biz::before{background:#d97706;}
+.ps-name{font-size:11px;color:var(--text);margin-bottom:8px;letter-spacing:0.04em;}
+.ps-bar{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+.ps-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(0.4,0,0.2,1);}
+.ps-tasks{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.ps-tag{font-size:9px;padding:2px 7px;border-radius:4px;letter-spacing:0.06em;}
+
+/* ── FEATURES ── */
+.features{padding:0 48px 120px;max-width:1100px;margin:0 auto;}
+.section-label{font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;}
+.section-title{font-family:"Instrument Serif",serif;font-size:clamp(32px,4vw,52px);font-weight:400;line-height:1.05;letter-spacing:-1.5px;margin-bottom:60px;}
+.section-title em{font-style:italic;color:var(--muted);}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.feat-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;transition:border-color 0.2s,transform 0.2s,box-shadow 0.2s;cursor:default;}
+.feat-card:hover{border-color:var(--text);transform:translateY(-3px);box-shadow:0 8px 32px rgba(26,24,20,0.08);}
+.feat-icon{font-size:28px;margin-bottom:16px;display:block;}
+.feat-name{font-size:13px;color:var(--text);margin-bottom:8px;letter-spacing:0.04em;}
+.feat-desc{font-size:11px;color:var(--muted);line-height:1.7;}
+
+/* ── STATS ── */
+.stats{padding:0 48px 120px;max-width:1100px;margin:0 auto;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.stat-box{background:var(--surface);padding:36px 28px;text-align:center;}
+.stat-num{font-family:"Instrument Serif",serif;font-size:48px;line-height:1;color:var(--text);margin-bottom:6px;}
+.stat-lbl{font-size:10px;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase;}
+
+/* ── HOW IT WORKS ── */
+.how{padding:0 48px 120px;max-width:1100px;margin:0 auto;}
+.steps{display:flex;flex-direction:column;gap:0;}
+.step{display:flex;gap:32px;align-items:flex-start;padding:36px 0;border-bottom:1px solid var(--border);position:relative;}
+.step:last-child{border-bottom:none;}
+.step-num{font-family:"Instrument Serif",serif;font-size:64px;color:var(--border);line-height:1;flex-shrink:0;width:80px;text-align:right;transition:color 0.3s;}
+.step:hover .step-num{color:var(--text);}
+.step-content{padding-top:8px;}
+.step-title{font-size:14px;color:var(--text);letter-spacing:0.04em;margin-bottom:8px;}
+.step-desc{font-size:12px;color:var(--muted);line-height:1.8;max-width:540px;}
+
+/* ── CTA BOTTOM ── */
+.cta-bottom{padding:80px 48px 120px;text-align:center;}
+.cta-box{background:var(--sidebar);border-radius:24px;padding:72px 48px;max-width:700px;margin:0 auto;position:relative;overflow:hidden;}
+.cta-box::before{content:"";position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:rgba(245,242,236,0.04);}
+.cta-box::after{content:"";position:absolute;bottom:-40px;left:-40px;width:160px;height:160px;border-radius:50%;background:rgba(245,242,236,0.03);}
+.cta-label{font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(245,242,236,0.4);margin-bottom:20px;}
+.cta-title{font-family:"Instrument Serif",serif;font-size:clamp(32px,5vw,56px);color:#f5f2ec;font-weight:400;line-height:1.05;letter-spacing:-2px;margin-bottom:16px;}
+.cta-title em{font-style:italic;color:rgba(245,242,236,0.55);}
+.cta-sub{font-size:12px;color:rgba(245,242,236,0.45);margin-bottom:40px;line-height:1.8;letter-spacing:0.04em;}
+.btn-light{padding:14px 36px;background:#f5f2ec;color:#1a1814;border:none;border-radius:12px;font-family:"DM Mono",monospace;font-size:13px;cursor:pointer;letter-spacing:0.08em;transition:opacity 0.15s,transform 0.15s;position:relative;z-index:1;}
+.btn-light:hover{opacity:0.88;transform:translateY(-1px);}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.footer-logo{font-family:"Instrument Serif",serif;font-size:14px;font-style:italic;color:var(--muted);}
+.footer-credits{font-size:11px;color:var(--muted);letter-spacing:0.06em;}
+
+/* ── RETURNING USER BANNER ── */
+#returning-banner{display:none;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:200;background:var(--sidebar);color:#f5f2ec;border-radius:14px;padding:16px 24px;font-size:12px;letter-spacing:0.04em;display:none;align-items:center;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,0.22);white-space:nowrap;}
+#returning-banner.show{display:flex;animation:slideUp 0.35s cubic-bezier(0.4,0,0.2,1);}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.rb-text{color:rgba(245,242,236,0.7);}
+.rb-text strong{color:#f5f2ec;}
+.rb-btn{padding:7px 16px;background:rgba(245,242,236,0.15);border:1px solid rgba(245,242,236,0.2);border-radius:8px;color:#f5f2ec;font-family:"DM Mono",monospace;font-size:11px;cursor:pointer;transition:background 0.15s;white-space:nowrap;}
+.rb-btn:hover{background:rgba(245,242,236,0.25);}
+.rb-dismiss{background:none;border:none;color:rgba(245,242,236,0.35);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px;}
+.rb-dismiss:hover{color:rgba(245,242,236,0.7);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.animate{opacity:0;animation:fadeUp 0.6s cubic-bezier(0.4,0,0.2,1) forwards;}
+.d1{animation-delay:0.05s}.d2{animation-delay:0.15s}.d3{animation-delay:0.25s}.d4{animation-delay:0.35s}.d5{animation-delay:0.45s}
+
+@media(max-width:768px){
+  nav{padding:0 24px;}
+  .hero{padding:100px 24px 60px;}
+  .hero-title{letter-spacing:-2px;}
+  .preview-strip,.features,.stats,.how,.cta-bottom{padding-left:24px;padding-right:24px;}
+  .feat-grid{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .preview-subjects{grid-template-columns:1fr;}
+  footer{padding:24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">🗂️ HSC <span>Task Tracker</span></div>
+  <button class="nav-cta" onclick="enterApp()">Open tracker →</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow animate d1">HSC 2026 · NSW</div>
+  <h1 class="hero-title animate d2">Study smarter,<br><em>not harder.</em></h1>
+  <p class="hero-sub animate d3">A personal command centre for your HSC year — track topics, manage assessments, and focus with purpose.</p>
+  <div class="hero-actions animate d4">
+    <button class="btn-primary" onclick="enterApp()">🗂️ Open my tracker</button>
+    <button class="btn-secondary" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">See what's inside</button>
+  </div>
+  <div class="hero-scroll animate d5">scroll</div>
+</section>
+
+<!-- PREVIEW STRIP -->
+<div class="preview-strip">
+  <div class="preview-card">
+    <div class="preview-topbar">
+      <div class="preview-dot" style="background:#f97316"></div>
+      <div class="preview-dot" style="background:#f59e0b"></div>
+      <div class="preview-dot" style="background:#16a34a"></div>
+      <div class="preview-title">HSC Task Tracker</div>
+    </div>
+    <div class="preview-subjects">
+      <div class="preview-subject ps-eco">
+        <div class="ps-name">Economics</div>
+        <div class="ps-bar"><div class="ps-fill" id="pf1" style="width:0%;background:#2563eb"></div></div>
+        <div class="ps-tasks">
+          <span class="ps-tag" style="background:#eff6ff;color:#2563eb">🚦 Trade</span>
+          <span class="ps-tag" style="background:#eff6ff;color:#2563eb">🚦 GDP</span>
+          <span class="ps-tag" style="background:#f0fdf4;color:#16a34a">✅ Essay</span>
+        </div>
+      </div>
+      <div class="preview-subject ps-eng">
+        <div class="ps-name">English Standard</div>
+        <div class="ps-bar"><div class="ps-fill" id="pf2" style="width:0%;background:#7c3aed"></div></div>
+        <div class="ps-tasks">
+          <span class="ps-tag" style="background:#f5f3ff;color:#7c3aed">🚦 Mod A</span>
+          <span class="ps-tag" style="background:#fff7ed;color:#f97316">📋 Notes</span>
+        </div>
+      </div>
+      <div class="preview-subject ps-maths">
+        <div class="ps-name">Maths Advanced</div>
+        <div class="ps-bar"><div class="ps-fill" id="pf3" style="width:0%;background:#0891b2"></div></div>
+        <div class="ps-tasks">
+          <span class="ps-tag" style="background:#eff6ff;color:#0891b2">🚦 Calculus</span>
+          <span class="ps-tag" style="background:#f0fdf4;color:#16a34a">✅ Stats</span>
+        </div>
+      </div>
+      <div class="preview-subject ps-biz">
+        <div class="ps-name">Business Studies</div>
+        <div class="ps-bar"><div class="ps-fill" id="pf4" style="width:0%;background:#d97706"></div></div>
+        <div class="ps-tasks">
+          <span class="ps-tag" style="background:#fffbeb;color:#d97706">🚦 Marketing</span>
+          <span class="ps-tag" style="background:#fffbeb;color:#d97706">🚦 Finance</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-label">Everything you need</div>
+  <h2 class="section-title">Built for the<br><em>HSC grind.</em></h2>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <span class="feat-icon">🚦</span>
+      <div class="feat-name">Traffic Light System</div>
+      <div class="feat-desc">Rate your confidence on every topic — red, amber, or green. Watch your overall readiness build in real time.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">📝</span>
+      <div class="feat-name">Assessment Tracker</div>
+      <div class="feat-desc">Add upcoming assessments with live circular countdowns. Know exactly how many days you have left at a glance.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🍅</span>
+      <div class="feat-name">Pomodoro Timer</div>
+      <div class="feat-desc">Stay in flow with a built-in Pomodoro timer. Sessions reset every day so you always know how much you put in.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">📋</span>
+      <div class="feat-name">Checklists</div>
+      <div class="feat-desc">Break big tasks into subtasks. When everything is ticked off, the task celebrates and auto-deletes itself.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">⧉</span>
+      <div class="feat-name">PiP Timer</div>
+      <div class="feat-desc">Pop out the Pomodoro timer into a draggable floating widget — keep it visible while you work on other pages.</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">💾</span>
+      <div class="feat-name">Auto-saved Locally</div>
+      <div class="feat-desc">Everything saves automatically to your browser. No account, no sign-up, no data leaving your device.</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats">
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-num" id="stat-subjects">5</div>
+      <div class="stat-lbl">Subjects tracked</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">3</div>
+      <div class="stat-lbl">Task types</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">∞</div>
+      <div class="stat-lbl">Assessments you can add</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">0</div>
+      <div class="stat-lbl">Accounts needed</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how">
+  <div class="section-label">Getting started</div>
+  <h2 class="section-title">Up and running<br><em>in seconds.</em></h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-content">
+        <div class="step-title">Open the tracker</div>
+        <div class="step-desc">Hit "Open my tracker" and you're in. Your five default HSC subjects are already set up and ready to go — no configuration needed.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-content">
+        <div class="step-title">Rate your topics</div>
+        <div class="step-desc">Use the traffic light buttons on each task to rate your confidence. Red = struggling, amber = getting there, green = confident. Watch the overall bar fill up.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-content">
+        <div class="step-title">Add your assessments</div>
+        <div class="step-desc">Jump to the Assessments page and add upcoming tasks with due dates. The circular countdown keeps you honest.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-content">
+        <div class="step-title">Focus and get it done</div>
+        <div class="step-desc">Use the Pomodoro timer to lock in. Sessions are tracked daily so you can see how much work you're actually putting in each day.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-bottom">
+  <div class="cta-box">
+    <div class="cta-label">Ready?</div>
+    <h2 class="cta-title">Your HSC year,<br><em>organised.</em></h2>
+    <p class="cta-sub">Everything saves automatically. Come back anytime and pick up right where you left off.</p>
+    <button class="btn-light" onclick="enterApp()">🗂️ Open my tracker</button>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">HSC Task Tracker</div>
+  <div class="footer-credits">😊 Designed by Prayush Mekala using Claude &nbsp;·&nbsp; 👍 With insight from Dhruvan Obineedi</div>
+</footer>
+
+<!-- RETURNING USER BANNER -->
+<div id="returning-banner">
+  <span class="rb-text">Welcome back — <strong id="rb-name">your tracker</strong> is saved and ready.</span>
+  <button class="rb-btn" onclick="enterApp()">Continue →</button>
+  <button class="rb-dismiss" onclick="dismissBanner()">✕</button>
+</div>
+
+<script>
+// ── DETECT RETURNING USER ──
+function hasSavedData(){
+  try{
+    const raw=localStorage.getItem("hsc_v3");
+    if(!raw)return false;
+    const p=JSON.parse(raw);
+    // Check if any actual tasks or assessments exist
+    const state=p.state||{};
+    const hasActivity=Object.values(state).some(s=>(s.tasks&&s.tasks.length>0)||(s.assessments&&s.assessments.length>0));
+    const hasCustomSubjects=p.subjects&&p.subjects.some(s=>!["eco","eng","maths","business","itm"].includes(s.id));
+    return hasActivity||hasCustomSubjects;
+  }catch(e){return false;}
+}
+
+function getMasterTitle(){
+  try{
+    const raw=localStorage.getItem("hsc_v3");
+    if(!raw)return null;
+    const p=JSON.parse(raw);
+    return p.cfg?.masterTitle||null;
+  }catch(e){return null;}
+}
+
+window.addEventListener("load",()=>{
+  // Animate preview bars
+  setTimeout(()=>{
+    document.getElementById("pf1").style.width="65%";
+    document.getElementById("pf2").style.width="40%";
+    document.getElementById("pf3").style.width="80%";
+    document.getElementById("pf4").style.width="30%";
+  },600);
+
+  // Returning user banner
+  if(hasSavedData()){
+    const title=getMasterTitle();
+    const nameEl=document.getElementById("rb-name");
+    if(title&&nameEl)nameEl.textContent=title;
+    setTimeout(()=>{
+      document.getElementById("returning-banner").classList.add("show");
+    },1200);
+  }
+
+  // Intersection observer for feature cards
+  const obs=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.style.opacity="1";e.target.style.transform="translateY(0)";}});
+  },{threshold:0.1});
+  document.querySelectorAll(".feat-card,.step,.stat-box").forEach(el=>{
+    el.style.opacity="0";el.style.transform="translateY(16px)";el.style.transition="opacity 0.5s ease,transform 0.5s ease";
+    obs.observe(el);
+  });
+});
+
+function enterApp(){
+  window.location.href="hsc-tracker-v2.html";
+}
+
+function dismissBanner(){
+  document.getElementById("returning-banner").classList.remove("show");
+}
+
+// Smooth counter animation for stat numbers
+function animateCounter(el,target,duration=1200){
+  const start=performance.now();
+  const isNum=!isNaN(parseInt(target));
+  if(!isNum)return;
+  const end=parseInt(target);
+  function step(now){
+    const p=Math.min((now-start)/duration,1);
+    const ease=1-Math.pow(1-p,3);
+    el.textContent=Math.round(ease*end);
+    if(p<1)requestAnimationFrame(step);
+    else el.textContent=target;
+  }
+  requestAnimationFrame(step);
+}
+const statObs=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const num=e.target.querySelector(".stat-num");
+      if(num&&!num._animated){num._animated=true;animateCounter(num,num.textContent);}
+    }
+  });
+},{threshold:0.5});
+document.querySelectorAll(".stat-box").forEach(b=>statObs.observe(b));
+</script>
+</body>
+</html>
