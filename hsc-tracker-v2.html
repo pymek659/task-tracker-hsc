@@ -31,7 +31,8 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
 #main{margin-left:56px;flex:1;min-height:100vh;transition:none;display:flex;flex-direction:column;}
 #sidebar.open~#main{margin-left:56px;}
 .topbar{position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:flex;align-items:center;gap:14px;transition:background 0.3s;}
-.tb-title{font-family:'Instrument Serif',serif;font-size:17px;font-weight:400;flex:1;}
+.tb-title{font-family:'Instrument Serif',serif;font-size:17px;font-weight:400;flex:1;cursor:pointer;transition:opacity 0.15s;}
+.tb-title:hover{opacity:0.65;}
 .tb-title em{font-style:italic;color:var(--muted);}
 .tb-version{font-size:10px;color:var(--muted);letter-spacing:0.12em;border:1px solid var(--border);padding:3px 8px;border-radius:12px;}
 .tb-clock{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums;background:var(--surface);border:1px solid var(--border);padding:5px 12px;border-radius:8px;white-space:nowrap;}
@@ -317,7 +318,7 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
 <nav id="sidebar">
   <div class="sb-logo">
     <button class="sb-toggle" onclick="toggleSidebar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg></button>
-    <span class="sb-logo-text">HSC Tracker</span>
+    <span class="sb-logo-text" onclick="window.location.href='index.html'" title="Back to home" style="cursor:pointer;">HSC Tracker</span>
   </div>
   <div class="sb-nav">
     <button class="nav-btn active" id="nav-tracker" onclick="goPage('tracker')"><span class="nav-icon">🗂️</span><span class="nav-label">Trackers</span></button>
@@ -330,7 +331,7 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
 </nav>
 <div id="main">
   <div class="topbar">
-    <div class="tb-title" id="tb-title">HSC <em>Task Tracker</em></div>
+    <div class="tb-title" id="tb-title" onclick="window.location.href='index.html'" title="Back to home">HSC <em>Task Tracker</em></div>
     <span class="tb-version">Version 2</span>
     <div class="tb-clock" id="tb-clock">--:--:-- --</div>
     <div class="dark-btn" onclick="toggleDark()"><div class="tog-track" id="dark-track"><div class="tog-knob"></div></div><span id="dark-lbl">Dark</span></div>
