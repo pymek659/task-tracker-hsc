@@ -768,13 +768,10 @@ function switchMusicTab(tab){
 function handleUpload(e){
   const files=Array.from(e.target.files);
   files.forEach(file=>{
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      tracks.push({name:file.name.replace(/\.[^.]+$/,""),url:ev.target.result});
-      renderTracklist();
-      if(tracks.length===1)loadTrack(0);
-    };
-    reader.readAsDataURL(file);
+    const url=URL.createObjectURL(file);
+    tracks.push({name:file.name.replace(/\.[^.]+$/,""),url,blob:file});
+    renderTracklist();
+    if(tracks.length===1)loadTrack(0);
   });
   e.target.value="";
 }
@@ -789,13 +786,10 @@ setTimeout(()=>{
     e.preventDefault();dz.classList.remove("drag-over");
     const files=Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith("audio/"));
     files.forEach(file=>{
-      const reader=new FileReader();
-      reader.onload=ev=>{
-        tracks.push({name:file.name.replace(/\.[^.]+$/,""),url:ev.target.result});
-        renderTracklist();
-        if(tracks.length===1)loadTrack(0);
-      };
-      reader.readAsDataURL(file);
+      const url=URL.createObjectURL(file);
+      tracks.push({name:file.name.replace(/\.[^.]+$/,""),url,blob:file});
+      renderTracklist();
+      if(tracks.length===1)loadTrack(0);
     });
   });
 },500);
@@ -862,6 +856,8 @@ function toggleShuffle(){isShuffle=!isShuffle;document.getElementById("mp-shuffl
 function toggleRepeat(){isRepeat=!isRepeat;document.getElementById("mp-repeat-btn").classList.toggle("active",isRepeat);}
 function removeTrack(idx,e){
   e.stopPropagation();
+  const t=tracks[idx];
+  if(t&&t.url)URL.revokeObjectURL(t.url);
   if(idx===currentTrack){audio.pause();audio.src="";isPlaying=false;currentTrack=-1;
     document.getElementById("mp-title").textContent="No track selected";
     document.getElementById("mp-artist").textContent="Upload MP3s to get started";
