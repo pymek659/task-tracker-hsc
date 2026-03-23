@@ -572,12 +572,12 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
     <div class="music-panel" id="mpanel-playlist">
       <div class="playlist-add-wrap">
         <div class="pl-form">
-          <input class="pl-input" id="pl-url-input" type="text" placeholder="Paste a Spotify, YouTube, or SoundCloud link..."
+          <input class="pl-input" id="pl-url-input" type="text" placeholder="Paste a Spotify or YouTube link..."
             onkeydown="if(event.key==='Enter')addPlaylist()">
           <input class="pl-name-input" id="pl-name-input" type="text" placeholder="Label (optional)" maxlength="40">
           <button class="pl-add-btn" onclick="addPlaylist()">Add</button>
         </div>
-        <div class="pl-hint">Supports Spotify playlists &amp; albums · YouTube videos &amp; playlists · SoundCloud tracks</div>
+        <div class="pl-hint">Supports Spotify playlists &amp; albums · YouTube playlists &amp; videos (audio only)</div>
       </div>
       <div class="pl-list" id="pl-list"><div class="pl-empty">No playlists yet — paste a link above</div></div>
       <div class="pl-embed-wrap" id="pl-embed-wrap" style="display:none">
@@ -588,6 +588,7 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
         <div id="pl-spotify-warning" style="display:none;background:#fff7ed;border-bottom:1px solid #fed7aa;padding:10px 18px;font-size:11px;color:#f97316;letter-spacing:0.04em;">
           ⚠️ Spotify embeds only work on public hosted sites. <strong>Upload to GitHub Pages</strong> and it'll work perfectly there.
         </div>
+        <div id="pl-yt-overlay" style="display:none;background:var(--surface2);padding:18px 20px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);letter-spacing:0.05em;">🎵 YouTube audio player — video display minimised</div>
         <iframe id="pl-embed" class="pl-embed-frame" frameborder="0" allowtransparency="true" allow="encrypted-media; autoplay" allowfullscreen></iframe>
       </div>
     </div>
@@ -890,25 +891,24 @@ function handleTrackClick(idx){
 function detectPlatform(url){
   if(url.includes("spotify.com"))return"spotify";
   if(url.includes("youtube.com")||url.includes("youtu.be"))return"youtube";
-  if(url.includes("soundcloud.com"))return"soundcloud";
+  if(url.includes("soundcloud.com"))return"unsupported";
   return"other";
 }
-function platformIcon(p){return{spotify:"🎧",youtube:"▶️",soundcloud:"☁️",other:"🔗"}[p]||"🔗";}
+function platformIcon(p){return{spotify:"🎧",youtube:"🎵",other:"🔗"}[p]||"🔗";}
 function buildEmbedUrl(url,platform){
   if(platform==="spotify"){
     const m=url.match(/spotify\.com\/(track|playlist|album|artist)\/([a-zA-Z0-9]+)/);
     if(m)return"https://open.spotify.com/embed/"+m[1]+"/"+m[2]+"?utm_source=generator&theme=0";
     return url;
   }
+
   if(platform==="youtube"){
     const list=url.match(/[?&]list=([^&]+)/);
     const v=url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    if(list)return"https://www.youtube.com/embed/videoseries?list="+list[1];
-    if(v)return"https://www.youtube.com/embed/"+v[1];
+    // Use nocookie domain, no controls video, just audio via iframe with no UI video
+    if(list)return"https://www.youtube-nocookie.com/embed/videoseries?list="+list[1]+"&autoplay=0&controls=1&fs=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&disablekb=0";
+    if(v)return"https://www.youtube-nocookie.com/embed/"+v[1]+"?autoplay=0&controls=1&fs=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3";
     return url;
-  }
-  if(platform==="soundcloud"){
-    return"https://w.soundcloud.com/player/?url="+encodeURIComponent(url)+"&auto_play=false&hide_related=false&show_comments=false&show_user=true";
   }
   return url;
 }
@@ -917,6 +917,12 @@ function addPlaylist(){
   const nameEl=document.getElementById("pl-name-input");
   const url=urlEl.value.trim();if(!url)return urlEl.focus();
   const platform=detectPlatform(url);
+  if(platform==="unsupported"){
+    urlEl.style.borderColor="var(--red)";
+    urlEl.placeholder="SoundCloud isn't supported — try Spotify or YouTube";
+    setTimeout(()=>{urlEl.style.borderColor="";urlEl.placeholder="Paste a Spotify or YouTube link...";},3000);
+    return;
+  }
   const name=nameEl.value.trim()||"Playlist "+(playlists.length+1);
   playlists.push({id:uid(),name,url,platform});
   saveMusicData();urlEl.value="";nameEl.value="";renderPlaylists();
@@ -941,7 +947,11 @@ function openPlaylist(idx){
   if(!frame||!wrap)return;
   frame.src=buildEmbedUrl(p.url,p.platform);
   document.getElementById("pl-embed-name").textContent=p.name;
-  // Show Spotify warning if on localhost/file
+  // YouTube: small height, hide video with overlay
+  frame.style.height=p.platform==="youtube"?"200px":"380px";
+  const ytOverlay=document.getElementById("pl-yt-overlay");
+  if(ytOverlay)ytOverlay.style.display=p.platform==="youtube"?"":"none";
+  // Spotify warning on localhost
   const isLocal=location.protocol==="file:"||location.hostname==="localhost"||location.hostname==="127.0.0.1";
   const warning=document.getElementById("pl-spotify-warning");
   if(warning)warning.style.display=(p.platform==="spotify"&&isLocal)?"":"none";
