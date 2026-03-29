@@ -708,13 +708,44 @@ function delAssess(subId,itemId){saveAssess(subId,getAssess(subId).filter(a=>a.i
 function tickAssess(){subjects.forEach(sub=>{getAssess(sub.id).filter(a=>!a.done).forEach(a=>{const ms=assessMs(a);const{t,ov}=assessDays(ms);const prog=assessProg(ms);const offset=(ASSESS_CIRC*(1-prog)).toFixed(1);const ring=document.getElementById("ar-"+a.id);if(ring){ring.setAttribute("stroke-dashoffset",offset);ring.className="ai-ring"+(ov?" ov":"");}const dn=document.getElementById("adn-"+a.id);if(dn){dn.textContent=t;dn.className="ai-dnum"+(ov?" ov":"");}const cd=document.getElementById("acd-"+a.id);if(cd){cd.textContent=assessCD(ms);cd.className="ai-livecd"+(ov?" ov":"");}});});}
 const POMO_CIRC=2*Math.PI*98;
 let pomoMode="focus",pomoRunning=false,pomoInterval=null,pomoLeft=25*60,pomoTotal=25*60,pomoToday=0;
+let _pomoEndTime=null; // wall-clock timestamp when current session ends
 function getPomoSecs(mode){const v=(id,fb)=>{const e=document.getElementById(id);return e?parseInt(e.value)||fb:fb;};if(mode==="focus")return v("p-focus",cfg.pomoFocus||25)*60;if(mode==="short")return v("p-short",cfg.pomoShort||5)*60;return v("p-long",cfg.pomoLong||15)*60;}
-function setPomoMode(mode){if(pomoRunning){clearInterval(pomoInterval);pomoRunning=false;syncPomoBtn("start");}pomoMode=mode;["focus","short","long"].forEach(m=>document.getElementById("pm-"+m).classList.toggle("on",m===mode));pomoTotal=pomoLeft=getPomoSecs(mode);updatePomoDisp();}
-function updatePomoDisp(){const m=Math.floor(pomoLeft/60),s=pomoLeft%60,ts=`${pad2(m)}:${pad2(s)}`;document.getElementById("pomo-display").textContent=ts;const phases={focus:"Focus Session",short:"Short Break",long:"Long Break"};const shorts={focus:"Focus",short:"Short Break",long:"Long Break"};document.getElementById("pomo-phase").textContent=phases[pomoMode];const hex=pomoMode==="focus"?"#16a34a":pomoMode==="short"?"#2563eb":"#7c3aed";const ring=document.getElementById("pomo-ring");ring.style.stroke=pomoMode==="focus"?"var(--green)":pomoMode==="short"?"var(--blue)":"var(--purple)";ring.style.strokeDashoffset=POMO_CIRC*(1-pomoLeft/pomoTotal);const pt=document.getElementById("pip-time-disp");if(pt)pt.textContent=ts;const pp=document.getElementById("pip-phase-lbl");if(pp)pp.textContent=shorts[pomoMode];const pd=document.getElementById("pip-dot");if(pd)pd.style.background=hex;const pb=document.getElementById("pip-bar");if(pb){pb.style.width=(pomoLeft/pomoTotal*100)+"%";pb.style.background=hex;}}
+function setPomoMode(mode){if(pomoRunning){clearInterval(pomoInterval);pomoRunning=false;_pomoEndTime=null;syncPomoBtn("start");}pomoMode=mode;["focus","short","long"].forEach(m=>document.getElementById("pm-"+m).classList.toggle("on",m===mode));pomoTotal=pomoLeft=getPomoSecs(mode);updatePomoDisp();}
+function updatePomoDisp(){const m=Math.floor(pomoLeft/60),s=Math.max(0,pomoLeft%60),ts=`${pad2(m)}:${pad2(s)}`;document.getElementById("pomo-display").textContent=ts;const phases={focus:"Focus Session",short:"Short Break",long:"Long Break"};const shorts={focus:"Focus",short:"Short Break",long:"Long Break"};document.getElementById("pomo-phase").textContent=phases[pomoMode];const hex=pomoMode==="focus"?"#16a34a":pomoMode==="short"?"#2563eb":"#7c3aed";const ring=document.getElementById("pomo-ring");ring.style.stroke=pomoMode==="focus"?"var(--green)":pomoMode==="short"?"var(--blue)":"var(--purple)";ring.style.strokeDashoffset=POMO_CIRC*(1-Math.max(0,pomoLeft)/pomoTotal);const pt=document.getElementById("pip-time-disp");if(pt)pt.textContent=ts;const pp=document.getElementById("pip-phase-lbl");if(pp)pp.textContent=shorts[pomoMode];const pd=document.getElementById("pip-dot");if(pd)pd.style.background=hex;const pb=document.getElementById("pip-bar");if(pb){pb.style.width=(Math.max(0,pomoLeft)/pomoTotal*100)+"%";pb.style.background=hex;}}
 function syncPomoBtn(state){document.getElementById("pomo-start-btn").textContent=state==="pause"?"Pause":state==="resume"?"Resume":"Start";const pb=document.getElementById("pip-play-btn");if(pb)pb.textContent=state==="pause"?"⏸":"▶";}
-function togglePomo(){if(pomoRunning){clearInterval(pomoInterval);pomoRunning=false;syncPomoBtn("resume");}else{pomoRunning=true;syncPomoBtn("pause");pomoInterval=setInterval(()=>{pomoLeft--;updatePomoDisp();if(pomoLeft<=0){clearInterval(pomoInterval);pomoRunning=false;syncPomoBtn("start");if(pomoMode==="focus"){pomoToday++;cfg.pomoSessions=pomoToday;cfg.pomoDate=new Date().toISOString().slice(0,10);document.getElementById("pomo-sess-count").textContent=pomoToday;save();if(cfg.pomoSound)playBeep();const until=parseInt(document.getElementById("p-until").value)||4;const next=pomoToday%until===0?"long":"short";if(cfg.pomoAuto){setTimeout(()=>{setPomoMode(next);togglePomo();},1000);}else setPomoMode(next);}else{if(cfg.pomoSound)playBeep();if(cfg.pomoAuto){setTimeout(()=>{setPomoMode("focus");togglePomo();},1000);}else setPomoMode("focus");}}},1000);}}
-function resetPomo(){clearInterval(pomoInterval);pomoRunning=false;syncPomoBtn("start");pomoLeft=pomoTotal=getPomoSecs(pomoMode);updatePomoDisp();}
-function skipPomo(){clearInterval(pomoInterval);pomoRunning=false;syncPomoBtn("start");pomoLeft=0;updatePomoDisp();if(pomoMode==="focus"){pomoToday++;cfg.pomoSessions=pomoToday;cfg.pomoDate=new Date().toISOString().slice(0,10);document.getElementById("pomo-sess-count").textContent=pomoToday;save();const until=parseInt(document.getElementById("p-until").value)||4;setPomoMode(pomoToday%until===0?"long":"short");}else setPomoMode("focus");}
+function pomoTick(){
+  if(!pomoRunning||!_pomoEndTime)return;
+  const secsLeft=Math.round((_pomoEndTime-Date.now())/1000);
+  pomoLeft=Math.max(0,secsLeft);
+  updatePomoDisp();
+  if(secsLeft<=0){
+    clearInterval(pomoInterval);pomoRunning=false;_pomoEndTime=null;syncPomoBtn("start");
+    if(pomoMode==="focus"){
+      pomoToday++;cfg.pomoSessions=pomoToday;cfg.pomoDate=new Date().toISOString().slice(0,10);
+      document.getElementById("pomo-sess-count").textContent=pomoToday;save();
+      if(cfg.pomoSound)playBeep();
+      const until=parseInt(document.getElementById("p-until").value)||4;
+      const next=pomoToday%until===0?"long":"short";
+      if(cfg.pomoAuto){setTimeout(()=>{setPomoMode(next);togglePomo();},1000);}else setPomoMode(next);
+    }else{
+      if(cfg.pomoSound)playBeep();
+      if(cfg.pomoAuto){setTimeout(()=>{setPomoMode("focus");togglePomo();},1000);}else setPomoMode("focus");
+    }
+  }
+}
+function togglePomo(){
+  if(pomoRunning){
+    // Pause: store remaining time, clear end timestamp
+    clearInterval(pomoInterval);pomoRunning=false;_pomoEndTime=null;syncPomoBtn("resume");
+  }else{
+    // Start/Resume: set end timestamp based on current pomoLeft
+    _pomoEndTime=Date.now()+pomoLeft*1000;
+    pomoRunning=true;syncPomoBtn("pause");
+    pomoInterval=setInterval(pomoTick,500); // 500ms for snappy display
+  }
+}
+function resetPomo(){clearInterval(pomoInterval);pomoRunning=false;_pomoEndTime=null;syncPomoBtn("start");pomoLeft=pomoTotal=getPomoSecs(pomoMode);updatePomoDisp();}
+function skipPomo(){clearInterval(pomoInterval);pomoRunning=false;_pomoEndTime=null;syncPomoBtn("start");pomoLeft=0;updatePomoDisp();if(pomoMode==="focus"){pomoToday++;cfg.pomoSessions=pomoToday;cfg.pomoDate=new Date().toISOString().slice(0,10);document.getElementById("pomo-sess-count").textContent=pomoToday;save();const until=parseInt(document.getElementById("p-until").value)||4;setPomoMode(pomoToday%until===0?"long":"short");}else setPomoMode("focus");}
 function updatePomoSettings(){pomoTotal=pomoLeft=getPomoSecs(pomoMode);updatePomoDisp();cfg.pomoFocus=parseInt(document.getElementById("p-focus").value)||25;cfg.pomoShort=parseInt(document.getElementById("p-short").value)||5;cfg.pomoLong=parseInt(document.getElementById("p-long").value)||15;cfg.pomoUntil=parseInt(document.getElementById("p-until").value)||4;save();}
 function togglePomoAuto(){cfg.pomoAuto=!cfg.pomoAuto;document.getElementById("p-auto").classList.toggle("on",cfg.pomoAuto);save();}
 function togglePomoSound(){cfg.pomoSound=!cfg.pomoSound;document.getElementById("p-sound").classList.toggle("on",cfg.pomoSound);save();}
@@ -769,6 +800,13 @@ load();buildSwatches();rebuildTrackers();rebuildAssessments();applyDark(cfg.dark
 const _today=new Date().toISOString().slice(0,10);
 if(cfg.pomoDate!==_today){cfg.pomoSessions=0;cfg.pomoDate=_today;save();}
 pomoToday=cfg.pomoSessions||0;document.getElementById("pomo-sess-count").textContent=pomoToday;
+
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden&&pomoRunning&&_pomoEndTime){
+    // Resync immediately on tab return
+    pomoTick();
+  }
+});
 updatePomoDisp();tick();setInterval(tick,1000);setInterval(tickAssess,1000);
 </script>
 </body>
