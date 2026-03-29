@@ -391,9 +391,23 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
 .pl-close-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;transition:color 0.15s;}
 .pl-close-btn:hover{color:var(--red);}
 .pl-embed-frame{width:100%;height:380px;display:block;}
-/* PiP */
-#pip{display:none;position:fixed;bottom:28px;right:28px;z-index:999;background:#18181f;border-radius:20px;padding:20px 24px 18px;box-shadow:0 12px 40px rgba(0,0,0,0.4);cursor:move;user-select:none;width:200px;text-align:center;border:1px solid rgba(255,255,255,0.08);}
-#pip.open{display:block;animation:fadeUp 0.2s ease;}
+/* PiP shared */
+.pip-widget{display:none;position:fixed;z-index:999;background:#18181f;border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,0.4);cursor:move;user-select:none;text-align:center;border:1px solid rgba(255,255,255,0.08);overflow:hidden;min-width:180px;min-height:120px;}
+.pip-widget.open{display:block;animation:fadeUp 0.2s ease;}
+.pip-inner{padding:20px 24px 22px;height:100%;box-sizing:border-box;}
+.pip-edge{position:absolute;z-index:3;}
+.pip-edge.n{top:0;left:8px;right:8px;height:5px;cursor:n-resize;}
+.pip-edge.s{bottom:0;left:8px;right:8px;height:5px;cursor:s-resize;}
+.pip-edge.e{top:8px;right:0;bottom:8px;width:5px;cursor:e-resize;}
+.pip-edge.w{top:8px;left:0;bottom:8px;width:5px;cursor:w-resize;}
+.pip-edge.nw{top:0;left:0;width:12px;height:12px;cursor:nw-resize;}
+.pip-edge.ne{top:0;right:0;width:12px;height:12px;cursor:ne-resize;}
+.pip-edge.sw{bottom:0;left:0;width:12px;height:12px;cursor:sw-resize;}
+.pip-edge.se{bottom:0;right:0;width:12px;height:12px;cursor:se-resize;}
+/* Pomo PiP */
+#pip{bottom:28px;right:28px;width:200px;}
+/* Music PiP */
+#pip-music{bottom:28px;right:248px;width:240px;}
 .pip-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
 .pip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background 0.3s;}
 .pip-phase-lbl{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.4);flex:1;text-align:center;}
@@ -518,7 +532,7 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
           <button class="mp-btn play-btn" id="mp-play-btn" onclick="togglePlay()"><svg id="mp-play-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
           <button class="mp-btn" onclick="nextTrack()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg></button>
           <button class="mp-btn" id="mp-repeat-btn" onclick="toggleRepeat()" title="Repeat"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
-          <div class="mp-vol-wrap"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg><input class="mp-vol" id="mp-vol" type="range" min="0" max="100" value="80" oninput="setVolume(this.value)"></div>
+          <button class="mp-btn" onclick="toggleMusicPip()" id="music-pip-btn" title="Pop out player"><svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"/></svg></button><div class="mp-vol-wrap"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg><input class="mp-vol" id="mp-vol" type="range" min="0" max="100" value="80" oninput="setVolume(this.value)"></div>
         </div>
       </div>
       <div class="music-tracklist-wrap">
@@ -604,11 +618,41 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
   </div>
 </div>
 <canvas id="confetti-canvas"></canvas>
-<div id="pip">
-  <div class="pip-hd"><div class="pip-dot" id="pip-dot" style="background:#16a34a"></div><div class="pip-phase-lbl" id="pip-phase-lbl">Focus</div><button class="pip-close" onclick="closePip()">✕</button></div>
-  <div class="pip-time" id="pip-time-disp">25:00</div>
-  <div class="pip-bar-track"><div class="pip-bar" id="pip-bar" style="width:100%;background:#16a34a"></div></div>
-  <div class="pip-ctrls"><button class="pip-ctrl" onclick="resetPomo()">↺</button><button class="pip-ctrl play" id="pip-play-btn" onclick="togglePomo()">▶</button><button class="pip-ctrl" onclick="skipPomo()">⏭</button></div>
+<div id="pip" class="pip-widget">
+  <div class="pip-inner">
+    <div class="pip-hd"><div class="pip-dot" id="pip-dot" style="background:#16a34a"></div><div class="pip-phase-lbl" id="pip-phase-lbl">Focus</div><button class="pip-close" onclick="closePip()">✕</button></div>
+    <div class="pip-time" id="pip-time-disp">25:00</div>
+    <div class="pip-bar-track"><div class="pip-bar" id="pip-bar" style="width:100%;background:#16a34a"></div></div>
+    <div class="pip-ctrls"><button class="pip-ctrl" onclick="resetPomo()">↺</button><button class="pip-ctrl play" id="pip-play-btn" onclick="togglePomo()">▶</button><button class="pip-ctrl" onclick="skipPomo()">⏭</button></div>
+  </div>
+  <div class="pip-edge nw" data-dir="nw"></div><div class="pip-edge ne" data-dir="ne"></div>
+  <div class="pip-edge sw" data-dir="sw"></div><div class="pip-edge se" data-dir="se"></div>
+  <div class="pip-edge n" data-dir="n"></div><div class="pip-edge s" data-dir="s"></div>
+  <div class="pip-edge e" data-dir="e"></div><div class="pip-edge w" data-dir="w"></div>
+</div>
+<div id="pip-music" class="pip-widget">
+  <div class="pip-inner">
+    <div class="pip-hd">
+      <div class="pip-dot" style="background:#1db954"></div>
+      <div class="pip-phase-lbl" id="pip-music-title">No track</div>
+      <button class="pip-close" onclick="closeMusicPip()">✕</button>
+    </div>
+    <div class="pip-bar-track" style="margin:10px 0 6px;">
+      <div class="pip-bar" id="pip-music-bar" style="width:0%;background:#fff"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:10px;">
+      <span id="pip-music-cur">0:00</span><span id="pip-music-dur">0:00</span>
+    </div>
+    <div class="pip-ctrls">
+      <button class="pip-ctrl" onclick="prevTrack()">⏮</button>
+      <button class="pip-ctrl play" id="pip-music-play" onclick="togglePlay()">▶</button>
+      <button class="pip-ctrl" onclick="nextTrack()">⏭</button>
+    </div>
+  </div>
+  <div class="pip-edge nw" data-dir="nw"></div><div class="pip-edge ne" data-dir="ne"></div>
+  <div class="pip-edge sw" data-dir="sw"></div><div class="pip-edge se" data-dir="se"></div>
+  <div class="pip-edge n" data-dir="n"></div><div class="pip-edge s" data-dir="s"></div>
+  <div class="pip-edge e" data-dir="e"></div><div class="pip-edge w" data-dir="w"></div>
 </div>
 <script>
 const DEFAULTS=[];
@@ -750,13 +794,92 @@ function updatePomoSettings(){pomoTotal=pomoLeft=getPomoSecs(pomoMode);updatePom
 function togglePomoAuto(){cfg.pomoAuto=!cfg.pomoAuto;document.getElementById("p-auto").classList.toggle("on",cfg.pomoAuto);save();}
 function togglePomoSound(){cfg.pomoSound=!cfg.pomoSound;document.getElementById("p-sound").classList.toggle("on",cfg.pomoSound);save();}
 function playBeep(){try{const ctx=new(window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.setValueAtTime(0.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.6);o.start();o.stop(ctx.currentTime+0.6);}catch(e){}}
-let pipOpen=false;
+let pipOpen=false,musicPipOpen=false;
 function togglePip(){pipOpen=!pipOpen;document.getElementById("pip").classList.toggle("open",pipOpen);document.getElementById("pip-btn").textContent=pipOpen?"⧉ Hide PiP":"⧉ PiP";updatePomoDisp();}
 function closePip(){pipOpen=false;document.getElementById("pip").classList.remove("open");document.getElementById("pip-btn").textContent="⧉ PiP";}
-(()=>{let drag=false,ox=0,oy=0;const w=document.getElementById("pip");w.addEventListener("mousedown",e=>{if(e.target.classList.contains("pip-ctrl")||e.target.classList.contains("pip-close"))return;drag=true;ox=e.clientX-w.offsetLeft;oy=e.clientY-w.offsetTop;w.style.cursor="grabbing";});document.addEventListener("mousemove",e=>{if(!drag)return;w.style.left=Math.max(0,Math.min(window.innerWidth-w.offsetWidth,e.clientX-ox))+"px";w.style.top=Math.max(0,Math.min(window.innerHeight-w.offsetHeight,e.clientY-oy))+"px";w.style.right="auto";w.style.bottom="auto";});document.addEventListener("mouseup",()=>{drag=false;w.style.cursor="move";});})();
+function toggleMusicPip(){musicPipOpen=!musicPipOpen;document.getElementById("pip-music").classList.toggle("open",musicPipOpen);syncMusicPip();}
+function closeMusicPip(){musicPipOpen=false;document.getElementById("pip-music").classList.remove("open");}
+function syncMusicPip(){
+  if(!musicPipOpen)return;
+  const title=document.getElementById("pip-music-title");
+  if(title)title.textContent=tracks.length&&currentTrack>=0?tracks[currentTrack].name:"No track";
+  const playBtn=document.getElementById("pip-music-play");
+  if(playBtn)playBtn.textContent=isPlaying?"⏸":"▶";
+  if(audio.duration){
+    const pct=audio.currentTime/audio.duration*100;
+    const bar=document.getElementById("pip-music-bar");
+    if(bar)bar.style.width=pct+"%";
+    const cur=document.getElementById("pip-music-cur");
+    if(cur)cur.textContent=fmtSecs(audio.currentTime);
+    const dur=document.getElementById("pip-music-dur");
+    if(dur)dur.textContent=fmtSecs(audio.duration);
+  }
+}
+
+
+// Unified drag + resize for both PiP widgets
+(()=>{
+  function makeDraggableResizable(widgetId){
+    const w=document.getElementById(widgetId);
+    const MIN_W=180,MIN_H=120;
+    let drag=false,resizeDir=null;
+    let ox=0,oy=0,startX=0,startY=0,startW=0,startH=0,startLeft=0,startTop=0;
+
+    // Drag from pip-inner / pip-hd
+    w.addEventListener("mousedown",e=>{
+      if(e.target.classList.contains("pip-ctrl")||e.target.classList.contains("pip-close")||e.target.classList.contains("pip-edge"))return;
+      drag=true;
+      // Ensure left/top are set (widget may use right/bottom initially)
+      const r=w.getBoundingClientRect();
+      w.style.left=r.left+"px";w.style.top=r.top+"px";w.style.right="auto";w.style.bottom="auto";
+      ox=e.clientX-r.left;oy=e.clientY-r.top;
+      w.style.cursor="grabbing";e.preventDefault();
+    });
+
+    // Resize from edges/corners
+    w.querySelectorAll(".pip-edge").forEach(edge=>{
+      edge.addEventListener("mousedown",e=>{
+        e.stopPropagation();e.preventDefault();
+        resizeDir=edge.dataset.dir;
+        startX=e.clientX;startY=e.clientY;
+        startW=w.offsetWidth;startH=w.offsetHeight;
+        const r=w.getBoundingClientRect();
+        w.style.left=r.left+"px";w.style.top=r.top+"px";w.style.right="auto";w.style.bottom="auto";
+        startLeft=r.left;startTop=r.top;
+      });
+    });
+
+    document.addEventListener("mousemove",e=>{
+      if(drag){
+        const nx=Math.max(0,Math.min(window.innerWidth-w.offsetWidth,e.clientX-ox));
+        const ny=Math.max(0,Math.min(window.innerHeight-w.offsetHeight,e.clientY-oy));
+        w.style.left=nx+"px";w.style.top=ny+"px";
+        return;
+      }
+      if(!resizeDir)return;
+      const dx=e.clientX-startX,dy=e.clientY-startY;
+      let nl=startLeft,nt=startTop,nw=startW,nh=startH;
+      if(resizeDir.includes("e"))nw=Math.max(MIN_W,startW+dx);
+      if(resizeDir.includes("s"))nh=Math.max(MIN_H,startH+dy);
+      if(resizeDir.includes("w")){nw=Math.max(MIN_W,startW-dx);nl=startLeft+startW-nw;}
+      if(resizeDir.includes("n")){nh=Math.max(MIN_H,startH-dy);nt=startTop+startH-nh;}
+      w.style.width=nw+"px";w.style.height=nh+"px";
+      w.style.left=nl+"px";w.style.top=nt+"px";
+    });
+
+    document.addEventListener("mouseup",()=>{
+      drag=false;resizeDir=null;w.style.cursor="move";
+    });
+  }
+  makeDraggableResizable("pip");
+  makeDraggableResizable("pip-music");
+})();
 /* MUSIC */
 let tracks=[],currentTrack=-1,isPlaying=false,isShuffle=false,isRepeat=false,playlists=[];
 const audio=new Audio();audio.volume=0.8;
+audio.addEventListener("timeupdate",syncMusicPip);
+audio.addEventListener("play",()=>{const b=document.getElementById("pip-music-play");if(b)b.textContent="⏸";});
+audio.addEventListener("pause",()=>{const b=document.getElementById("pip-music-play");if(b)b.textContent="▶";});
 function loadMusicData(){try{const r=localStorage.getItem("hsc_music");if(r){const p=JSON.parse(r);playlists=p.playlists||[];}}catch(e){}renderPlaylists();}
 function saveMusicData(){try{localStorage.setItem("hsc_music",JSON.stringify({playlists}));}catch(e){}}
 function switchMusicTab(tab){document.querySelectorAll(".music-tab").forEach(t=>t.classList.remove("active"));document.querySelectorAll(".music-panel").forEach(p=>p.classList.remove("active"));document.getElementById("mtab-"+tab).classList.add("active");document.getElementById("mpanel-"+tab).classList.add("active");}
