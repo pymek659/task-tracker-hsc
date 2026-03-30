@@ -532,7 +532,8 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
           <button class="mp-btn play-btn" id="mp-play-btn" onclick="togglePlay()"><svg id="mp-play-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
           <button class="mp-btn" onclick="nextTrack()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg></button>
           <button class="mp-btn" id="mp-repeat-btn" onclick="toggleRepeat()" title="Repeat"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
-          <button class="mp-btn" onclick="toggleMusicPip()" id="music-pip-btn" title="Pop out player"><svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"/></svg></button><div class="mp-vol-wrap"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg><input class="mp-vol" id="mp-vol" type="range" min="0" max="100" value="80" oninput="setVolume(this.value)"></div>
+          <div class="mp-vol-wrap"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg><input class="mp-vol" id="mp-vol" type="range" min="0" max="100" value="80" oninput="setVolume(this.value)"></div>
+          <button class="mp-btn" id="music-pip-btn" onclick="toggleMusicPip()" title="Pop out player" style="margin-left:4px;"><svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"/></svg></button>
         </div>
       </div>
       <div class="music-tracklist-wrap">
@@ -797,8 +798,8 @@ function playBeep(){try{const ctx=new(window.AudioContext||window.webkitAudioCon
 let pipOpen=false,musicPipOpen=false;
 function togglePip(){pipOpen=!pipOpen;document.getElementById("pip").classList.toggle("open",pipOpen);document.getElementById("pip-btn").textContent=pipOpen?"⧉ Hide PiP":"⧉ PiP";updatePomoDisp();}
 function closePip(){pipOpen=false;document.getElementById("pip").classList.remove("open");document.getElementById("pip-btn").textContent="⧉ PiP";}
-function toggleMusicPip(){musicPipOpen=!musicPipOpen;document.getElementById("pip-music").classList.toggle("open",musicPipOpen);syncMusicPip();}
-function closeMusicPip(){musicPipOpen=false;document.getElementById("pip-music").classList.remove("open");}
+function toggleMusicPip(){musicPipOpen=!musicPipOpen;document.getElementById("pip-music").classList.toggle("open",musicPipOpen);const btn=document.getElementById("music-pip-btn");if(btn)btn.textContent=musicPipOpen?"⧉ Hide PiP":"⧉ PiP";syncMusicPip();}
+function closeMusicPip(){musicPipOpen=false;document.getElementById("pip-music").classList.remove("open");const btn=document.getElementById("music-pip-btn");if(btn)btn.textContent="⧉ PiP";}
 function syncMusicPip(){
   if(!musicPipOpen)return;
   const title=document.getElementById("pip-music-title");
