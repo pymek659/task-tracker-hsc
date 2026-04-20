@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HSC Task Tracker — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#f5f2ec;--surface:#fff;--surface2:#f0ece4;--border:#e0d9cf;--text:#1a1814;--muted:#9a9080;--red:#d93636;--green:#16a34a;}
+[data-theme="dark"]{--bg:#0f0f16;--surface:#18181f;--surface2:#20202a;--border:#2a2a38;--text:#e8e6f0;--muted:#6b6880;}
+body{font-family:"DM Mono",monospace;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background 0.3s;}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(circle,#e0d9cf 1px,transparent 1px);background-size:48px 48px;opacity:0.5;}
+[data-theme="dark"] body::after{opacity:0.15;}
+nav{position:relative;z-index:10;padding:0 48px;height:58px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(245,242,236,0.85);backdrop-filter:blur(12px);}
+[data-theme="dark"] nav{background:rgba(15,15,22,0.85);}
+.nav-logo{font-family:"Instrument Serif",serif;font-size:17px;display:flex;align-items:center;gap:8px;cursor:pointer;text-decoration:none;color:var(--text);}
+.nav-logo span{font-style:italic;color:var(--muted);}
+.nav-dark{background:none;border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-family:"DM Mono",monospace;font-size:11px;color:var(--muted);cursor:pointer;transition:all 0.15s;}
+.nav-dark:hover{color:var(--text);border-color:var(--muted);}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px;position:relative;z-index:1;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:44px 48px;width:100%;max-width:440px;box-shadow:0 4px 40px rgba(26,24,20,0.07);animation:slideUp 0.35s cubic-bezier(0.4,0,0.2,1);}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.auth-icon{font-size:36px;margin-bottom:20px;display:block;text-align:center;}
+.auth-title{font-family:"Instrument Serif",serif;font-size:32px;font-weight:400;text-align:center;line-height:1;letter-spacing:-1px;margin-bottom:8px;}
+.auth-title em{font-style:italic;color:var(--muted);}
+.auth-sub{font-size:12px;color:var(--muted);text-align:center;letter-spacing:0.06em;margin-bottom:32px;line-height:1.7;}
+.auth-tabs{display:flex;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:24px;}
+.auth-tab{flex:1;padding:8px;border:none;background:none;font-family:"DM Mono",monospace;font-size:12px;color:var(--muted);cursor:pointer;border-radius:8px;transition:all 0.15s;letter-spacing:0.04em;}
+.auth-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(26,24,20,0.08);}
+.auth-form{display:flex;flex-direction:column;gap:14px;}
+.field-label{font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.field-input{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);font-family:"DM Mono",monospace;font-size:13px;color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+.field-input:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(26,24,20,0.06);}
+.field-input::placeholder{color:var(--muted);}
+.field-row{display:flex;flex-direction:column;}
+.avatar-label{font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.avatar-grid{display:flex;gap:10px;flex-wrap:wrap;}
+.avatar-opt{width:42px;height:42px;border-radius:50%;border:2px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:border-color 0.15s,transform 0.15s;user-select:none;}
+.avatar-opt:hover{transform:scale(1.12);}
+.avatar-opt.selected{border-color:var(--text);box-shadow:0 0 0 3px rgba(26,24,20,0.1);}
+.auth-submit{width:100%;padding:13px;background:var(--text);color:var(--bg);border:none;border-radius:10px;font-family:"DM Mono",monospace;font-size:13px;cursor:pointer;letter-spacing:0.08em;transition:opacity 0.15s;margin-top:4px;}
+.auth-submit:hover{opacity:0.8;}
+.auth-submit:disabled{opacity:0.4;cursor:not-allowed;}
+.auth-msg{font-size:11px;padding:10px 14px;border-radius:8px;display:none;letter-spacing:0.04em;line-height:1.5;margin-bottom:4px;}
+.auth-msg.error{background:#fef2f2;color:var(--red);border:1px solid #fecaca;display:block;}
+[data-theme="dark"] .auth-msg.error{background:#1e0808;border-color:#3d1515;}
+.auth-msg.success{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;display:block;}
+.auth-msg.info{background:var(--surface2);color:var(--muted);border:1px solid var(--border);display:block;}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:6px 0;}
+.auth-divider span{font-size:10px;color:var(--muted);white-space:nowrap;letter-spacing:0.1em;}
+.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--border);}
+.auth-footer{text-align:center;margin-top:16px;font-size:11px;color:var(--muted);}
+.auth-footer a{color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);}
+.auth-footer a:hover{border-color:var(--text);}
+.profile-wrap{display:none;flex-direction:column;align-items:center;gap:16px;}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:36px;}
+.profile-name{font-family:"Instrument Serif",serif;font-size:24px;font-weight:400;}
+.profile-email{font-size:11px;color:var(--muted);letter-spacing:0.06em;}
+.profile-actions{display:flex;gap:10px;width:100%;margin-top:8px;}
+.profile-btn{flex:1;padding:11px;border:none;border-radius:10px;font-family:"DM Mono",monospace;font-size:12px;cursor:pointer;letter-spacing:0.06em;transition:opacity 0.15s;}
+.profile-btn.primary{background:var(--text);color:var(--bg);}
+.profile-btn.primary:hover{opacity:0.8;}
+.profile-btn.sec{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.profile-btn.sec:hover{color:var(--red);}
+footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:20px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.footer-logo{font-family:"Instrument Serif",serif;font-size:14px;font-style:italic;color:var(--muted);}
+.footer-credits{font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="index.html">🗂️ HSC <span>Task Tracker</span></a>
+  <button class="nav-dark" onclick="toggleDark()" id="dark-btn">Dark</button>
+</nav>
+<main>
+  <div class="auth-card" id="auth-card">
+    <span class="auth-icon">🗂️</span>
+    <h1 class="auth-title" id="auth-title">Welcome <em>back.</em></h1>
+    <p class="auth-sub" id="auth-sub">Sign in to access your personal HSC tracker,<br>or create a free account to get started.</p>
+
+    <div class="auth-tabs" id="auth-tabs">
+      <button class="auth-tab active" id="tab-signin" onclick="switchTab('signin')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+    </div>
+
+    <div id="msg" class="auth-msg"></div>
+
+    <!-- SIGN IN -->
+    <div id="form-signin">
+      <div class="auth-form">
+        <div class="field-row">
+          <div class="field-label">Email</div>
+          <input class="field-input" id="si-email" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')signIn()">
+        </div>
+        <div class="field-row">
+          <div class="field-label">Password</div>
+          <input class="field-input" id="si-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')signIn()">
+        </div>
+        <button class="auth-submit" id="si-btn" onclick="signIn()">Sign In →</button>
+      </div>
+      <div class="auth-divider"><span>OR</span></div>
+      <div class="auth-footer">No account yet? <a href="#" onclick="switchTab('signup');return false;">Create one free →</a></div>
+    </div>
+
+    <!-- SIGN UP -->
+    <div id="form-signup" style="display:none">
+      <div class="auth-form">
+        <div class="field-row">
+          <div class="field-label">Display Name</div>
+          <input class="field-input" id="su-name" type="text" placeholder="e.g. Prayush" maxlength="40">
+        </div>
+        <div class="field-row">
+          <div class="field-label">Email</div>
+          <input class="field-input" id="su-email" type="email" placeholder="you@example.com">
+        </div>
+        <div class="field-row">
+          <div class="field-label">Password</div>
+          <input class="field-input" id="su-password" type="password" placeholder="At least 6 characters" onkeydown="if(event.key==='Enter')signUp()">
+        </div>
+        <div>
+          <div class="avatar-label">Choose an avatar</div>
+          <div class="avatar-grid" id="avatar-grid"></div>
+        </div>
+        <button class="auth-submit" id="su-btn" onclick="signUp()">Create Account →</button>
+      </div>
+      <div class="auth-divider"><span>OR</span></div>
+      <div class="auth-footer">Already have an account? <a href="#" onclick="switchTab('signin');return false;">Sign in →</a></div>
+    </div>
+
+    <!-- LOGGED IN -->
+    <div class="profile-wrap" id="profile-wrap">
+      <div class="profile-avatar" id="profile-avatar">🙂</div>
+      <div class="profile-name" id="profile-name">Loading...</div>
+      <div class="profile-email" id="profile-email"></div>
+      <div class="profile-actions">
+        <button class="profile-btn primary" onclick="goToTracker()">Open my tracker →</button>
+        <button class="profile-btn sec" id="signout-btn" onclick="doSignOut()">Sign out</button>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>
+  <div class="footer-logo">HSC Task Tracker</div>
+  <div class="footer-credits">😊 Designed by Prayush Mekala using Claude · 👍 With insight from Dhruvan Obineedi</div>
+</footer>
+
+<script>
+// Dark mode
+const darkPref = localStorage.getItem("hsc_dark");
+if(darkPref==="true") document.documentElement.setAttribute("data-theme","dark");
+function toggleDark(){
+  const d = document.documentElement.getAttribute("data-theme")==="dark";
+  document.documentElement.setAttribute("data-theme", d?"":"dark");
+  localStorage.setItem("hsc_dark", !d);
+  document.getElementById("dark-btn").textContent = d?"Dark":"Light";
+}
+if(darkPref==="true") document.getElementById("dark-btn").textContent="Light";
+
+// Avatars
+const AVATARS=["🙂","😎","🤓","🧑‍💻","👩‍🎓","🧑‍🎓","🦊","🐼","🐨","🦁","🐙","🌟"];
+let selectedAvatar=AVATARS[0];
+(function buildAvatars(){
+  const grid=document.getElementById("avatar-grid");
+  AVATARS.forEach((a,i)=>{
+    const el=document.createElement("div");
+    el.className="avatar-opt"+(i===0?" selected":"");
+    el.textContent=a;
+    el.onclick=()=>{
+      document.querySelectorAll(".avatar-opt").forEach(x=>x.classList.remove("selected"));
+      el.classList.add("selected"); selectedAvatar=a;
+    };
+    grid.appendChild(el);
+  });
+})();
+
+function switchTab(tab){
+  document.getElementById("tab-signin").classList.toggle("active",tab==="signin");
+  document.getElementById("tab-signup").classList.toggle("active",tab==="signup");
+  document.getElementById("form-signin").style.display=tab==="signin"?"":"none";
+  document.getElementById("form-signup").style.display=tab==="signup"?"":"none";
+  clearMsg();
+}
+function showMsg(text,type="error"){const el=document.getElementById("msg");el.textContent=text;el.className="auth-msg "+type;}
+function clearMsg(){document.getElementById("msg").className="auth-msg";}
+
+function showLoggedIn(user){
+  document.getElementById("auth-tabs").style.display="none";
+  document.getElementById("form-signin").style.display="none";
+  document.getElementById("form-signup").style.display="none";
+  document.getElementById("auth-title").innerHTML="You're <em>in.</em>";
+  document.getElementById("auth-sub").textContent="Ready to pick up where you left off?";
+  document.getElementById("profile-wrap").style.display="flex";
+  document.getElementById("profile-avatar").textContent=user.photoURL||"🙂";
+  document.getElementById("profile-name").textContent=user.displayName||user.email;
+  document.getElementById("profile-email").textContent=user.email;
+  clearMsg();
+}
+function showLoggedOut(){
+  document.getElementById("auth-tabs").style.display="";
+  document.getElementById("form-signin").style.display="";
+  document.getElementById("form-signup").style.display="none";
+  document.getElementById("profile-wrap").style.display="none";
+  document.getElementById("auth-title").innerHTML="Welcome <em>back.</em>";
+  document.getElementById("auth-sub").textContent="Sign in to access your personal HSC tracker,\nor create a free account to get started.";
+}
+function goToTracker(){ window.location.href="hsc-tracker-v2.html"; }
+
+// Called by Firebase module
+window._authPageSignedIn  = showLoggedIn;
+window._authPageSignedOut = showLoggedOut;
+
+function friendlyError(code){
+  const m={"auth/user-not-found":"No account found with that email.","auth/wrong-password":"Incorrect password.","auth/invalid-credential":"Incorrect email or password.","auth/email-already-in-use":"An account with that email already exists.","auth/weak-password":"Password must be at least 6 characters.","auth/invalid-email":"Please enter a valid email address.","auth/too-many-requests":"Too many attempts — try again later."};
+  return m[code]||"Something went wrong. Please try again.";
+}
+
+function signIn(){
+  const email=document.getElementById("si-email").value.trim();
+  const password=document.getElementById("si-password").value;
+  if(!email||!password){showMsg("Please fill in all fields.");return;}
+  const btn=document.getElementById("si-btn");
+  btn.disabled=true;btn.textContent="Signing in...";
+  clearMsg();
+  window._firebaseSignIn(email,password)
+    .then(()=>{ /* onAuthStateChanged handles the rest */ })
+    .catch(err=>{showMsg(friendlyError(err.code));btn.disabled=false;btn.textContent="Sign In →";});
+}
+
+function signUp(){
+  const name=document.getElementById("su-name").value.trim();
+  const email=document.getElementById("su-email").value.trim();
+  const password=document.getElementById("su-password").value;
+  if(!name||!email||!password){showMsg("Please fill in all fields.");return;}
+  if(password.length<6){showMsg("Password must be at least 6 characters.");return;}
+  const btn=document.getElementById("su-btn");
+  btn.disabled=true;btn.textContent="Creating account...";
+  clearMsg();
+
+  // Check for existing local data to migrate
+  const localData = localStorage.getItem("hsc_v3");
+  const hasLocalData = localData && JSON.parse(localData)?.subjects?.length > 0;
+  if(hasLocalData) showMsg("Creating account and uploading your existing data to the cloud...","info");
+
+  window._firebaseSignUp(email, password, name, selectedAvatar)
+    .then(()=>{ /* onAuthStateChanged handles the rest */ })
+    .catch(err=>{showMsg(friendlyError(err.code));btn.disabled=false;btn.textContent="Create Account →";});
+}
+
+function doSignOut(){
+  if(!confirm("Sign out?"))return;
+  document.getElementById("signout-btn").textContent="Signing out...";
+  window._firebaseSignOut().then(()=>showLoggedOut());
+}
+</script>
+
+<!-- Firebase module — must be type=module -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+         createUserWithEmailAndPassword, updateProfile, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDxXX81nPah7js_8_tNwMqWEOCN-QEikp8",
+  authDomain: "hsc-tracker-21723.firebaseapp.com",
+  projectId: "hsc-tracker-21723",
+  storageBucket: "hsc-tracker-21723.firebasestorage.app",
+  messagingSenderId: "139010054354",
+  appId: "1:139010054354:web:95149d6f3f55690935f50b"
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+window._firebaseSignIn = (email, pass) =>
+  signInWithEmailAndPassword(auth, email, pass);
+
+window._firebaseSignUp = async (email, pass, name, avatar) => {
+  const cred = await createUserWithEmailAndPassword(auth, email, pass);
+  await updateProfile(cred.user, { displayName: name, photoURL: avatar });
+  // Migrate local data to cloud on first sign-up
+  const local = localStorage.getItem("hsc_v3");
+  if(local){
+    try{
+      const parsed = JSON.parse(local);
+      if(parsed?.subjects?.length > 0){
+        await setDoc(doc(db,"users",cred.user.uid,"data","tracker"), parsed);
+      }
+    }catch(e){}
+  }
+  const localMusic = localStorage.getItem("hsc_music");
+  if(localMusic){
+    try{
+      const parsed = JSON.parse(localMusic);
+      await setDoc(doc(db,"users",cred.user.uid,"data","music"), parsed);
+    }catch(e){}
+  }
+  return cred;
+};
+
+window._firebaseSignOut = () => signOut(auth);
+
+onAuthStateChanged(auth, user => {
+  if(user){
+    localStorage.setItem("hsc_current_user", JSON.stringify({
+      name: user.displayName||user.email,
+      avatar: user.photoURL||"🙂",
+      email: user.email,
+      uid: user.uid
+    }));
+    window._authPageSignedIn && window._authPageSignedIn(user);
+  } else {
+    localStorage.removeItem("hsc_current_user");
+    window._authPageSignedOut && window._authPageSignedOut();
+  }
+});
+</script>
+</body>
+</html>
