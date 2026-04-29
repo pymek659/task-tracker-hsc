@@ -475,6 +475,23 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
 .pip-ctrl:hover{background:rgba(255,255,255,0.16);transform:scale(1.08);}
 .pip-ctrl.play{background:rgba(255,255,255,0.18);width:44px;height:44px;font-size:16px;}
 .pip-ctrl.play:hover{background:rgba(255,255,255,0.28);}
+
+/* ── CUSTOM DIALOG ── */
+.dlg-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+.dlg-overlay.open{display:flex;animation:fadeIn 0.15s ease;}
+.dlg-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 36px;width:100%;max-width:380px;box-shadow:0 16px 48px rgba(0,0,0,0.18);animation:fadeUp 0.2s ease;}
+.dlg-icon{font-size:28px;margin-bottom:12px;}
+.dlg-title{font-family:'Instrument Serif',serif;font-size:22px;font-weight:400;margin-bottom:8px;line-height:1.2;}
+.dlg-msg{font-size:12px;color:var(--muted);line-height:1.7;letter-spacing:0.03em;margin-bottom:24px;}
+.dlg-actions{display:flex;gap:10px;justify-content:flex-end;}
+.dlg-btn{padding:9px 20px;border-radius:10px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;letter-spacing:0.05em;transition:opacity 0.15s;border:none;}
+.dlg-btn.primary{background:var(--text);color:var(--bg);}
+.dlg-btn.primary:hover{opacity:0.78;}
+.dlg-btn.danger{background:var(--red);color:#fff;}
+.dlg-btn.danger:hover{opacity:0.82;}
+.dlg-btn.cancel{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.dlg-btn.cancel:hover{color:var(--text);}
+
 .credits{text-align:center;margin-top:44px;padding-top:22px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);letter-spacing:0.08em;line-height:2.2;}
 #confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:9999;width:100%;height:100%;}
 </style>
@@ -818,6 +835,16 @@ onAuthStateChanged(_auth, async user => {
   </div>
 </div>
 
+
+<div class="dlg-overlay" id="dlg-overlay">
+  <div class="dlg-box">
+    <div class="dlg-icon" id="dlg-icon">⚠️</div>
+    <div class="dlg-title" id="dlg-title">Are you sure?</div>
+    <div class="dlg-msg" id="dlg-msg"></div>
+    <div class="dlg-actions" id="dlg-actions"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="sub-modal">
   <div class="modal">
     <h3>Edit subject</h3>
@@ -987,7 +1014,7 @@ function saveProfile(){
       document.getElementById("prof-big-avatar").textContent=avatar;
       const msg=document.getElementById("prof-save-msg");
       if(msg){msg.style.opacity="1";setTimeout(()=>msg.style.opacity="0",2000);}
-    }).catch(e=>alert("Failed to save: "+e.message));
+    }).catch(e=>dlgAlert("Failed to save: "+e.message,"❌","Error"));
   } else {
     // Local fallback
     const user=JSON.parse(localStorage.getItem("hsc_current_user")||"{}");
@@ -1049,24 +1076,59 @@ function friendlyAuthError(code){
   return m[code]||"Something went wrong. Please try again.";
 }
 function deleteAccount(){
-  if(!confirm("Are you absolutely sure? This will permanently delete your account and all your data. This cannot be undone."))return;
-  if(!confirm("Last chance — delete everything?"))return;
-  if(window._fbDeleteAccount){
-    window._fbDeleteAccount().then(()=>{
-      localStorage.clear();
-      window.location.href="auth.html";
-    }).catch(e=>{
-      if(e.code==="auth/requires-recent-login"){
-        alert("For security, please sign out and sign back in before deleting your account.");
-      } else {
-        alert("Failed to delete account: "+e.message);
-      }
+  dlgConfirm("This will permanently delete your account and all your data. This cannot be undone.",{icon:"🚨",title:"Delete your account?",confirmText:"Yes, delete",cancelText:"Cancel",danger:true}).then(ok=>{
+    if(!ok)return;
+    dlgConfirm("Last chance — are you absolutely certain?",{icon:"🚨",title:"Really delete everything?",confirmText:"Delete forever",cancelText:"Cancel",danger:true}).then(ok2=>{
+      if(!ok2)return;
+      if(window._fbDeleteAccount){
+        window._fbDeleteAccount().then(()=>{localStorage.clear();window.location.href="auth.html";})
+        .catch(e=>{
+          if(e.code==="auth/requires-recent-login"){
+            dlgAlert("For security, please sign out and sign back in, then try again.","🔒","Re-authentication required");
+          } else {
+            dlgAlert("Failed to delete account: "+e.message,"❌","Error");
+          }
+        });
+      } else {localStorage.clear();window.location.href="auth.html";}
     });
-  } else {
-    localStorage.clear();
-    window.location.href="auth.html";
-  }
+  });
 }
+
+
+/* ── CUSTOM DIALOG SYSTEM ── */
+function _dlgClose(){document.getElementById("dlg-overlay").classList.remove("open");}
+function dlgAlert(msg,icon="ℹ️",title="Notice"){
+  return new Promise(resolve=>{
+    document.getElementById("dlg-icon").textContent=icon;
+    document.getElementById("dlg-title").textContent=title;
+    document.getElementById("dlg-msg").textContent=msg;
+    const acts=document.getElementById("dlg-actions");
+    acts.innerHTML="";
+    const ok=document.createElement("button");
+    ok.className="dlg-btn primary";ok.textContent="OK";
+    ok.onclick=()=>{_dlgClose();resolve(true);};
+    acts.appendChild(ok);
+    document.getElementById("dlg-overlay").classList.add("open");
+  });
+}
+function dlgConfirm(msg,{icon="⚠️",title="Are you sure?",confirmText="Confirm",cancelText="Cancel",danger=false}={}){
+  return new Promise(resolve=>{
+    document.getElementById("dlg-icon").textContent=icon;
+    document.getElementById("dlg-title").textContent=title;
+    document.getElementById("dlg-msg").textContent=msg;
+    const acts=document.getElementById("dlg-actions");
+    acts.innerHTML="";
+    const cancel=document.createElement("button");
+    cancel.className="dlg-btn cancel";cancel.textContent=cancelText;
+    cancel.onclick=()=>{_dlgClose();resolve(false);};
+    const confirm=document.createElement("button");
+    confirm.className="dlg-btn "+(danger?"danger":"primary");confirm.textContent=confirmText;
+    confirm.onclick=()=>{_dlgClose();resolve(true);};
+    acts.appendChild(cancel);acts.appendChild(confirm);
+    document.getElementById("dlg-overlay").classList.add("open");
+  });
+}
+document.getElementById("dlg-overlay").addEventListener("click",function(e){if(e.target===this)_dlgClose();});
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 let sbPinned=false;
@@ -1078,8 +1140,8 @@ function toggleDark(){cfg.dark=!cfg.dark;applyDark(cfg.dark);save();}
 function applySettings(){const c=document.getElementById("tb-clock");if(c)c.style.display=cfg.clock?"":"none";const o=document.getElementById("overall-box");if(o)o.style.display=cfg.overall?"":"none";document.querySelectorAll(".conf-bar").forEach(b=>b.style.display=cfg.subconf?"":"none");document.querySelectorAll(".tbadge").forEach(b=>b.style.display=cfg.badges?"":"none");document.querySelectorAll(".credits").forEach(c=>c.style.display=cfg.credits?"":"none");const mt=document.getElementById("master-title");if(mt)mt.innerHTML=cfg.masterTitle?escH(cfg.masterTitle):"HSC <em>Task Tracker</em>";["clock","overall","subconf","badges","credits"].forEach(k=>{const t=document.getElementById("st-"+k);if(t)t.classList.toggle("on",cfg[k]);});const si=document.getElementById("st-title-inp");if(si)si.value=cfg.masterTitle||"";document.getElementById("p-focus").value=cfg.pomoFocus;document.getElementById("p-short").value=cfg.pomoShort;document.getElementById("p-long").value=cfg.pomoLong;document.getElementById("p-until").value=cfg.pomoUntil;document.getElementById("p-auto").classList.toggle("on",cfg.pomoAuto);document.getElementById("p-sound").classList.toggle("on",cfg.pomoSound);document.getElementById("pomo-sess-count").textContent=cfg.pomoSessions||0;}
 function toggleSt(key){cfg[key]=!cfg[key];applySettings();save();}
 function saveMasterTitle(){cfg.masterTitle=document.getElementById("st-title-inp").value.trim();applySettings();save();const b=document.querySelector(".set-save");if(b){b.textContent="Saved ✓";setTimeout(()=>b.textContent="Save title",1500);}}
-function clearAllTasks(){if(!confirm("Clear all tasks?"))return;subjects.forEach(s=>appState[s.id].tasks=[]);save();rebuildTrackers();}
-function resetAll(){if(!confirm("Reset everything?"))return;subjects=[];appState={};save();rebuildTrackers();rebuildAssessments();}
+function clearAllTasks(){dlgConfirm("This will remove all tasks from every subject. Subjects and assessments are kept.",{icon:"🗑️",title:"Clear all tasks?",confirmText:"Clear",danger:true}).then(ok=>{if(!ok)return;subjects.forEach(s=>appState[s.id].tasks=[]);save();rebuildTrackers();});}
+function resetAll(){dlgConfirm("This will delete all subjects, tasks and assessments. This cannot be undone.",{icon:"⚠️",title:"Reset everything?",confirmText:"Reset",danger:true}).then(ok=>{if(!ok)return;subjects=[];appState={};save();rebuildTrackers();rebuildAssessments();});}
 function getDeadline(t){if(!t.due)return null;const[y,m,d]=t.due.split("-").map(Number);if(t.time){const[h,mn]=t.time.split(":").map(Number);return new Date(y,m-1,d,h,mn,0,0);}return new Date(y,m-1,d,23,59,59,0);}
 function msLeft(t){const dl=getDeadline(t);return dl?dl-Date.now():null;}
 function pad2(n){return String(n).padStart(2,"0");}
@@ -1119,7 +1181,7 @@ function rgb2hex(rgb){const m=rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);if(!
 function openSubModal(subId){const sub=subjects.find(s=>s.id===subId);if(!sub)return;_editSubId=subId;document.getElementById("mod-name").value=sub.name;document.getElementById("mod-color").value=sub.color;document.querySelectorAll("#mod-swatches .swatch").forEach(s=>s.classList.toggle("on",rgb2hex(s.style.backgroundColor).toLowerCase()===sub.color.toLowerCase()));document.getElementById("mod-del-btn").onclick=()=>deleteSubject(subId);document.getElementById("sub-modal").classList.add("open");document.getElementById("mod-name").focus();}
 function closeSubModal(){document.getElementById("sub-modal").classList.remove("open");_editSubId=null;}
 function saveSubModal(){if(!_editSubId)return;const sub=subjects.find(s=>s.id===_editSubId);if(!sub)return;const n=document.getElementById("mod-name").value.trim();if(!n){document.getElementById("mod-name").focus();return;}sub.name=n;sub.color=document.getElementById("mod-color").value;save();closeSubModal();rebuildTrackers();rebuildAssessments();}
-function deleteSubject(subId){const sub=subjects.find(s=>s.id===subId);if(!sub)return;if(!confirm(`Delete "${sub.name}" and all its data?`))return;subjects=subjects.filter(s=>s.id!==subId);delete appState[subId];save();closeSubModal();rebuildTrackers();rebuildAssessments();}
+function deleteSubject(subId){const sub=subjects.find(s=>s.id===subId);if(!sub)return;dlgConfirm(`All tasks and assessments for "${sub.name}" will be permanently deleted.`,{icon:"🗑️",title:`Delete ${sub.name}?`,confirmText:"Delete",danger:true}).then(ok=>{if(!ok)return;subjects=subjects.filter(s=>s.id!==subId);delete appState[subId];save();closeSubModal();rebuildTrackers();rebuildAssessments();});}
 document.getElementById("sub-modal").addEventListener("click",function(e){if(e.target===this)closeSubModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSubModal();});
 const ASSESS_CIRC=2*Math.PI*33;
