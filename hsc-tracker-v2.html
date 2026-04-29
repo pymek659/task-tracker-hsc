@@ -480,7 +480,7 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
 </style>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut, updateProfile, deleteUser }
+import { getAuth, onAuthStateChanged, signOut, updateProfile, deleteUser, EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -525,6 +525,18 @@ window._fbSignOut = async function(){
 window._fbUpdateProfile = async function(name, avatar){
   const user=_auth.currentUser;if(!user)throw new Error("Not signed in");
   await updateProfile(user,{displayName:name,photoURL:avatar});
+};
+window._fbChangeEmail = async function(newEmail, currentPass){
+  const user=_auth.currentUser;if(!user)throw new Error("Not signed in");
+  const cred=EmailAuthProvider.credential(user.email,currentPass);
+  await reauthenticateWithCredential(user,cred);
+  await updateEmail(user,newEmail);
+};
+window._fbChangePassword = async function(currentPass, newPass){
+  const user=_auth.currentUser;if(!user)throw new Error("Not signed in");
+  const cred=EmailAuthProvider.credential(user.email,currentPass);
+  await reauthenticateWithCredential(user,cred);
+  await updatePassword(user,newPass);
 };
 window._fbDeleteAccount = async function(){
   const user=_auth.currentUser;if(!user)throw new Error("Not signed in");
@@ -777,6 +789,21 @@ onAuthStateChanged(_auth, async user => {
             <div><div class="set-lbl">Sign out</div><div class="set-sub">You'll need to sign in again</div></div>
             <button class="btn-cancel" onclick="if(window._fbSignOut)window._fbSignOut()">Sign out</button>
           </div>
+          <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:8px;padding-top:14px;">
+            <div class="set-lbl">Change email</div>
+            <input class="set-inp" id="prof-email-inp" type="email" placeholder="New email address" style="margin-top:0">
+            <input class="set-inp" id="prof-email-pass" type="password" placeholder="Current password (required)" style="margin-top:0">
+            <button class="profile-save-btn" onclick="changeEmail()">Update email</button>
+            <span id="prof-email-msg" style="font-size:11px;opacity:0;transition:opacity 0.3s;"></span>
+          </div>
+          <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:8px;padding-top:14px;border-top:1px solid var(--border);">
+            <div class="set-lbl">Change password</div>
+            <input class="set-inp" id="prof-pass-cur" type="password" placeholder="Current password" style="margin-top:0">
+            <input class="set-inp" id="prof-pass-new" type="password" placeholder="New password (min 6 chars)" style="margin-top:0">
+            <input class="set-inp" id="prof-pass-con" type="password" placeholder="Confirm new password" style="margin-top:0">
+            <button class="profile-save-btn" onclick="changePassword()">Update password</button>
+            <span id="prof-pass-msg" style="font-size:11px;opacity:0;transition:opacity 0.3s;"></span>
+          </div>
         </div>
         <div class="profile-danger-zone">
           <h3>Danger zone</h3>
@@ -975,6 +1002,52 @@ function saveProfile(){
   }
 }
 
+function showFieldMsg(id, text, isError){
+  const el=document.getElementById(id);if(!el)return;
+  el.textContent=text;
+  el.style.color=isError?"var(--red)":"var(--green)";
+  el.style.opacity="1";
+  setTimeout(()=>el.style.opacity="0",3000);
+}
+function changeEmail(){
+  const email=document.getElementById("prof-email-inp").value.trim();
+  const pass=document.getElementById("prof-email-pass").value;
+  if(!email||!pass){showFieldMsg("prof-email-msg","Please fill in both fields.",true);return;}
+  if(window._fbChangeEmail){
+    window._fbChangeEmail(email,pass)
+      .then(()=>{
+        const u=JSON.parse(localStorage.getItem("hsc_current_user")||"{}");
+        u.email=email;localStorage.setItem("hsc_current_user",JSON.stringify(u));
+        document.getElementById("prof-display-email").textContent=email;
+        document.getElementById("prof-email-inp").value="";
+        document.getElementById("prof-email-pass").value="";
+        showFieldMsg("prof-email-msg","Email updated ✓",false);
+      })
+      .catch(e=>showFieldMsg("prof-email-msg",friendlyAuthError(e.code),true));
+  } else {showFieldMsg("prof-email-msg","Not connected to Firebase.",true);}
+}
+function changePassword(){
+  const cur=document.getElementById("prof-pass-cur").value;
+  const nw=document.getElementById("prof-pass-new").value;
+  const con=document.getElementById("prof-pass-con").value;
+  if(!cur||!nw||!con){showFieldMsg("prof-pass-msg","Please fill in all fields.",true);return;}
+  if(nw!==con){showFieldMsg("prof-pass-msg","New passwords don't match.",true);return;}
+  if(nw.length<6){showFieldMsg("prof-pass-msg","Password must be at least 6 characters.",true);return;}
+  if(window._fbChangePassword){
+    window._fbChangePassword(cur,nw)
+      .then(()=>{
+        document.getElementById("prof-pass-cur").value="";
+        document.getElementById("prof-pass-new").value="";
+        document.getElementById("prof-pass-con").value="";
+        showFieldMsg("prof-pass-msg","Password updated ✓",false);
+      })
+      .catch(e=>showFieldMsg("prof-pass-msg",friendlyAuthError(e.code),true));
+  } else {showFieldMsg("prof-pass-msg","Not connected to Firebase.",true);}
+}
+function friendlyAuthError(code){
+  const m={"auth/wrong-password":"Incorrect current password.","auth/invalid-credential":"Incorrect current password.","auth/email-already-in-use":"That email is already in use.","auth/invalid-email":"Please enter a valid email address.","auth/requires-recent-login":"Please sign out and sign back in first, then try again.","auth/weak-password":"Password must be at least 6 characters."};
+  return m[code]||"Something went wrong. Please try again.";
+}
 function deleteAccount(){
   if(!confirm("Are you absolutely sure? This will permanently delete your account and all your data. This cannot be undone."))return;
   if(!confirm("Last chance — delete everything?"))return;
