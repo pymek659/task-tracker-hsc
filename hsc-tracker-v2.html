@@ -1248,18 +1248,48 @@ function pomoTick(){
   updatePomoDisp();
   if(secsLeft<=0){
     clearInterval(pomoInterval);pomoRunning=false;_pomoEndTime=null;syncPomoBtn("start");
+    let nextMode="focus";
     if(pomoMode==="focus"){
       pomoToday++;cfg.pomoSessions=pomoToday;cfg.pomoDate=new Date().toISOString().slice(0,10);
       document.getElementById("pomo-sess-count").textContent=pomoToday;save();
-      if(cfg.pomoSound)playBeep();
       const until=parseInt(document.getElementById("p-until").value)||4;
-      const next=pomoToday%until===0?"long":"short";
-      if(cfg.pomoAuto){setTimeout(()=>{setPomoMode(next);togglePomo();},1000);}else setPomoMode(next);
-    }else{
-      if(cfg.pomoSound)playBeep();
-      if(cfg.pomoAuto){setTimeout(()=>{setPomoMode("focus");togglePomo();},1000);}else setPomoMode("focus");
+      nextMode=pomoToday%until===0?"long":"short";
     }
+    if(cfg.pomoSound)playBeep();
+    showPomoEndDlg(nextMode);
   }
+}
+function showPomoEndDlg(nextMode){
+  const modeLabels={focus:"Focus",short:"Short Break",long:"Long Break"};
+  const nextLabel=modeLabels[nextMode];
+  const phaseDone=modeLabels[pomoMode];
+  // Use the custom dialog system
+  const overlay=document.getElementById("dlg-overlay");
+  document.getElementById("dlg-icon").textContent=pomoMode==="focus"?"🍅":"☕";
+  document.getElementById("dlg-title").textContent=`${phaseDone} complete!`;
+  document.getElementById("dlg-msg").textContent="Great work! What would you like to do next?";
+  const acts=document.getElementById("dlg-actions");
+  acts.innerHTML="";
+  // End timer button
+  const endBtn=document.createElement("button");
+  endBtn.className="dlg-btn cancel";endBtn.textContent="End timer";
+  endBtn.onclick=()=>{
+    stopAlarm();
+    _dlgClose();
+    setPomoMode(nextMode); // reset to next mode but don't start
+  };
+  // Continue button
+  const contBtn=document.createElement("button");
+  contBtn.className="dlg-btn primary";
+  contBtn.textContent=`Continue (${nextLabel})`;
+  contBtn.onclick=()=>{
+    stopAlarm();
+    _dlgClose();
+    setPomoMode(nextMode);
+    togglePomo(); // auto-start next
+  };
+  acts.appendChild(endBtn);acts.appendChild(contBtn);
+  overlay.classList.add("open");
 }
 function togglePomo(){
   if(pomoRunning){
@@ -1277,7 +1307,42 @@ function skipPomo(){clearInterval(pomoInterval);pomoRunning=false;_pomoEndTime=n
 function updatePomoSettings(){pomoTotal=pomoLeft=getPomoSecs(pomoMode);updatePomoDisp();cfg.pomoFocus=parseInt(document.getElementById("p-focus").value)||25;cfg.pomoShort=parseInt(document.getElementById("p-short").value)||5;cfg.pomoLong=parseInt(document.getElementById("p-long").value)||15;cfg.pomoUntil=parseInt(document.getElementById("p-until").value)||4;save();}
 function togglePomoAuto(){cfg.pomoAuto=!cfg.pomoAuto;document.getElementById("p-auto").classList.toggle("on",cfg.pomoAuto);save();}
 function togglePomoSound(){cfg.pomoSound=!cfg.pomoSound;document.getElementById("p-sound").classList.toggle("on",cfg.pomoSound);save();}
-function playBeep(){try{const ctx=new(window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.setValueAtTime(0.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.6);o.start();o.stop(ctx.currentTime+0.6);}catch(e){}}
+let _alarmCtx=null,_alarmNodes=[];
+function playBeep(){
+  stopAlarm();
+  try{
+    _alarmCtx=new(window.AudioContext||window.webkitAudioContext)();
+    function beepPulse(startTime){
+      const o=_alarmCtx.createOscillator();
+      const g=_alarmCtx.createGain();
+      o.connect(g);g.connect(_alarmCtx.destination);
+      o.type="sine";o.frequency.value=880;
+      g.gain.setValueAtTime(0,startTime);
+      g.gain.linearRampToValueAtTime(0.35,startTime+0.05);
+      g.gain.setValueAtTime(0.35,startTime+0.25);
+      g.gain.linearRampToValueAtTime(0,startTime+0.35);
+      o.start(startTime);o.stop(startTime+0.35);
+      _alarmNodes.push(o,g);
+    }
+    // Repeating beep pattern: 3 quick beeps, pause, repeat
+    for(let i=0;i<20;i++){
+      const t=_alarmCtx.currentTime;
+      const cycle=i*1.2;
+      beepPulse(t+cycle+0);
+      beepPulse(t+cycle+0.4);
+      beepPulse(t+cycle+0.8);
+    }
+  }catch(e){}
+}
+function stopAlarm(){
+  try{
+    if(_alarmCtx){
+      _alarmNodes.forEach(n=>{try{n.stop&&n.stop();n.disconnect&&n.disconnect();}catch(e){}});
+      _alarmCtx.close();
+    }
+  }catch(e){}
+  _alarmCtx=null;_alarmNodes=[];
+}
 let pipOpen=false,musicPipOpen=false;
 function togglePip(){pipOpen=!pipOpen;document.getElementById("pip").classList.toggle("open",pipOpen);document.getElementById("pip-btn").textContent=pipOpen?"⧉ Hide PiP":"⧉ PiP";updatePomoDisp();}
 function closePip(){pipOpen=false;document.getElementById("pip").classList.remove("open");document.getElementById("pip-btn").textContent="⧉ PiP";}
