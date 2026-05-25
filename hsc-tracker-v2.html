@@ -598,6 +598,7 @@ onAuthStateChanged(_auth, async user => {
   <div class="sb-nav">
     <button class="nav-btn active" id="nav-tracker" onclick="goPage('tracker')"><span class="nav-icon">🗂️</span><span class="nav-label">Trackers</span></button>
     <button class="nav-btn" id="nav-assessments" onclick="goPage('assessments')"><span class="nav-icon">📝</span><span class="nav-label">Assessments</span></button>
+    <button class="nav-btn" id="nav-countdowns" onclick="goPage('countdowns')"><span class="nav-icon">⏳</span><span class="nav-label">Countdowns</span></button>
     <button class="nav-btn" id="nav-pomodoro" onclick="goPage('pomodoro')"><span class="nav-icon">🍅</span><span class="nav-label">Pomodoro Timer</span></button>
     <button class="nav-btn" id="nav-music" onclick="goPage('music')"><span class="nav-icon">🎵</span><span class="nav-label">Music</span></button>
   </div>
@@ -632,13 +633,21 @@ onAuthStateChanged(_auth, async user => {
 
   <!-- ASSESSMENTS -->
   <div class="page" id="page-assessments">
-    <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-      <div><h1 class="page-title">📝 <em>Assessments</em></h1><p class="page-subtitle">Subject-wise assessment tracker with live countdowns</p></div>
-      <button id="assess-sort-btn" onclick="toggleAssessSort()" style="display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;letter-spacing:0.06em;transition:all 0.15s;white-space:nowrap;">
-        <span id="assess-sort-icon">↕</span> Sort by date
+    <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;"><div><h1 class="page-title">📝 <em>Assessments</em></h1><p class="page-subtitle">Subject-wise assessment tracker with live countdowns</p></div><button id="assess-sort-btn" onclick="toggleAssessSort()" style="display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;letter-spacing:0.06em;transition:all 0.15s;white-space:nowrap;"><span id="assess-sort-icon">↕</span> Sort by date</button></div>
+    <div class="subject-grid" id="assess-grid"></div>
+    <div class="credits">😊 Designed by Prayush Mekala using Claude<br>👍 With insight from Dhruvan Obineedi</div>
+  </div>
+
+  <!-- COUNTDOWNS -->
+  <div class="page" id="page-countdowns">
+    <div class="page-header">
+      <h1 class="page-title">⏳ <em>Countdowns</em></h1>
+      <p class="page-subtitle">Track upcoming events and deadlines with live countdowns</p>
+      <button id="cd-sort-btn" onclick="toggleCdSort()" style="display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;letter-spacing:0.06em;transition:all 0.15s;white-space:nowrap;margin-top:14px;">
+        <span id="cd-sort-icon">↕</span> Sort by date
       </button>
     </div>
-    <div class="subject-grid" id="assess-grid"></div>
+    <div class="subject-grid" id="cd-grid"></div>
     <div class="credits">😊 Designed by Prayush Mekala using Claude<br>👍 With insight from Dhruvan Obineedi</div>
   </div>
 
@@ -902,7 +911,7 @@ const SW=["#2563eb","#7c3aed","#0891b2","#d97706","#059669","#e11d48","#0f766e",
 const IC={cal:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="12" height="11" rx="1"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/><line x1="2" y1="7" x2="14" y2="7"/></svg>`,timer:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="9" r="5.5"/><line x1="8" y1="3" x2="8" y2="1"/><line x1="6" y1="1" x2="10" y2="1"/><line x1="8" y1="9" x2="10" y2="7"/></svg>`,edit:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>`,del:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3,5 13,5"/><path d="M5 5V3h6v2"/><path d="M4 5l1 9h6l1-9"/></svg>`,plus:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>`};
 let subjects=[],appState={},cardMode={};
 const cfg={dark:false,clock:true,overall:true,subconf:true,badges:true,credits:true,masterTitle:"",pomoFocus:25,pomoShort:5,pomoLong:15,pomoUntil:4,pomoAuto:false,pomoSound:true,pomoSessions:0,pomoDate:""};
-function load(){try{const r=localStorage.getItem("hsc_v3");if(r){const p=JSON.parse(r);subjects=p.subjects||[];appState=p.state||{};Object.assign(cfg,p.cfg||{});}else{subjects=[];}}catch(e){subjects=[];}subjects.forEach(s=>{if(!appState[s.id])appState[s.id]={tasks:[],assessments:[]};});}
+function load(){try{const r=localStorage.getItem("hsc_v3");if(r){const p=JSON.parse(r);subjects=p.subjects||[];appState=p.state||{};Object.assign(cfg,p.cfg||{});}else{subjects=[];}}catch(e){subjects=[];}subjects.forEach(s=>{if(!appState[s.id])appState[s.id]={tasks:[],assessments:[],countdowns:[]};if(!appState[s.id].countdowns)appState[s.id].countdowns=[];});}
 
 let _saveTimer=null;
 function save(){
@@ -1147,7 +1156,7 @@ function applySettings(){const c=document.getElementById("tb-clock");if(c)c.styl
 function toggleSt(key){cfg[key]=!cfg[key];applySettings();save();}
 function saveMasterTitle(){cfg.masterTitle=document.getElementById("st-title-inp").value.trim();applySettings();save();const b=document.querySelector(".set-save");if(b){b.textContent="Saved ✓";setTimeout(()=>b.textContent="Save title",1500);}}
 function clearAllTasks(){dlgConfirm("This will remove all tasks from every subject. Subjects and assessments are kept.",{icon:"🗑️",title:"Clear all tasks?",confirmText:"Clear",danger:true}).then(ok=>{if(!ok)return;subjects.forEach(s=>appState[s.id].tasks=[]);save();rebuildTrackers();});}
-function resetAll(){dlgConfirm("This will delete all subjects, tasks and assessments. This cannot be undone.",{icon:"⚠️",title:"Reset everything?",confirmText:"Reset",danger:true}).then(ok=>{if(!ok)return;subjects=[];appState={};save();rebuildTrackers();rebuildAssessments();});}
+function resetAll(){dlgConfirm("This will delete all subjects, tasks and assessments. This cannot be undone.",{icon:"⚠️",title:"Reset everything?",confirmText:"Reset",danger:true}).then(ok=>{if(!ok)return;subjects=[];appState={};save();rebuildTrackers();rebuildAssessments();rebuildCountdowns();});}
 function getDeadline(t){if(!t.due)return null;const[y,m,d]=t.due.split("-").map(Number);if(t.time){const[h,mn]=t.time.split(":").map(Number);return new Date(y,m-1,d,h,mn,0,0);}return new Date(y,m-1,d,23,59,59,0);}
 function msLeft(t){const dl=getDeadline(t);return dl?dl-Date.now():null;}
 function pad2(n){return String(n).padStart(2,"0");}
@@ -1179,15 +1188,15 @@ function openAddForm(subId){document.getElementById("af-"+subId).classList.add("
 function closeAddForm(subId){document.getElementById("af-"+subId).classList.remove("open");document.getElementById("ai-"+subId).value="";const d=document.getElementById("add-"+subId);if(d)d.value="";const t=document.getElementById("atm-"+subId);if(t)t.value="";document.getElementById("aob-"+subId).style.display="";}
 function addTask(subId){const name=document.getElementById("ai-"+subId).value.trim();if(!name){document.getElementById("ai-"+subId).focus();return;}const type=cardMode[subId]||"tl";const due=document.getElementById("add-"+subId)?.value||null;const time=document.getElementById("atm-"+subId)?.value||null;appState[subId].tasks.push({id:uid(),name,type,state:null,done:false,due:type!=="checklist"?due:null,time:type!=="checklist"?time:null,subtasks:type==="checklist"?[]:undefined});save();closeAddForm(subId);renderTrackerCard(subjects.find(s=>s.id===subId));updateGlobal();}
 function showNewSubForm(ctx){const ac=document.getElementById(ctx+"-add-sub");if(!ac)return;const rc=SW[Math.floor(Math.random()*SW.length)];const f=document.createElement("div");f.className="new-sub-card";f.id=ctx+"-new-sub";f.innerHTML=`<div class="nsf-title">New subject</div><div class="nsf-row"><input autocomplete="off" class="nsf-inp" id="${ctx}-nsf-name" type="text" placeholder="e.g. Chemistry" maxlength="60" onkeydown="if(event.key==='Enter')confirmNewSub('${ctx}');if(event.key==='Escape')cancelNewSub('${ctx}')"><input class="nsf-color" id="${ctx}-nsf-color" type="color" value="${rc}"></div><div class="nsf-actions"><button class="btn-cancel" onclick="cancelNewSub('${ctx}')">Cancel</button><button class="btn-confirm" onclick="confirmNewSub('${ctx}')">Add subject</button></div>`;ac.replaceWith(f);document.getElementById(ctx+"-nsf-name").focus();}
-function cancelNewSub(ctx){const f=document.getElementById(ctx+"-new-sub");if(!f)return;const ac=makeAddSubCard(ctx);f.replaceWith(ac);}
-function confirmNewSub(ctx){const n=document.getElementById(ctx+"-nsf-name")?.value.trim();if(!n)return;const c=document.getElementById(ctx+"-nsf-color")?.value||"#6366f1";const id="sub_"+uid();subjects.push({id,name:n,color:c});appState[id]={tasks:[],assessments:[]};save();rebuildTrackers();rebuildAssessments();}
+function cancelNewSub(ctx){const f=document.getElementById(ctx+"-new-sub");if(!f)return;const ac=(ctx==="cd")?makeCDAddSubCard():makeAddSubCard(ctx);f.replaceWith(ac);}
+function confirmNewSub(ctx){const n=document.getElementById(ctx+"-nsf-name")?.value.trim();if(!n)return;const c=document.getElementById(ctx+"-nsf-color")?.value||"#6366f1";const id="sub_"+uid();subjects.push({id,name:n,color:c});appState[id]={tasks:[],assessments:[],countdowns:[]};save();rebuildTrackers();rebuildAssessments();rebuildCountdowns();}
 let _editSubId=null;
 function buildSwatches(){const w=document.getElementById("mod-swatches");SW.forEach(c=>{const s=document.createElement("span");s.className="swatch";s.style.background=c;s.title=c;s.onclick=()=>{document.getElementById("mod-color").value=c;w.querySelectorAll(".swatch").forEach(x=>x.classList.remove("on"));s.classList.add("on");};w.appendChild(s);});}
 function rgb2hex(rgb){const m=rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);if(!m)return rgb;return"#"+[m[1],m[2],m[3]].map(x=>parseInt(x).toString(16).padStart(2,"0")).join("");}
 function openSubModal(subId){const sub=subjects.find(s=>s.id===subId);if(!sub)return;_editSubId=subId;document.getElementById("mod-name").value=sub.name;document.getElementById("mod-color").value=sub.color;document.querySelectorAll("#mod-swatches .swatch").forEach(s=>s.classList.toggle("on",rgb2hex(s.style.backgroundColor).toLowerCase()===sub.color.toLowerCase()));document.getElementById("mod-del-btn").onclick=()=>deleteSubject(subId);document.getElementById("sub-modal").classList.add("open");document.getElementById("mod-name").focus();}
 function closeSubModal(){document.getElementById("sub-modal").classList.remove("open");_editSubId=null;}
-function saveSubModal(){if(!_editSubId)return;const sub=subjects.find(s=>s.id===_editSubId);if(!sub)return;const n=document.getElementById("mod-name").value.trim();if(!n){document.getElementById("mod-name").focus();return;}sub.name=n;sub.color=document.getElementById("mod-color").value;save();closeSubModal();rebuildTrackers();rebuildAssessments();}
-function deleteSubject(subId){const sub=subjects.find(s=>s.id===subId);if(!sub)return;dlgConfirm(`All tasks and assessments for "${sub.name}" will be permanently deleted.`,{icon:"🗑️",title:`Delete ${sub.name}?`,confirmText:"Delete",danger:true}).then(ok=>{if(!ok)return;subjects=subjects.filter(s=>s.id!==subId);delete appState[subId];save();closeSubModal();rebuildTrackers();rebuildAssessments();});}
+function saveSubModal(){if(!_editSubId)return;const sub=subjects.find(s=>s.id===_editSubId);if(!sub)return;const n=document.getElementById("mod-name").value.trim();if(!n){document.getElementById("mod-name").focus();return;}sub.name=n;sub.color=document.getElementById("mod-color").value;save();closeSubModal();rebuildTrackers();rebuildAssessments();rebuildCountdowns();}
+function deleteSubject(subId){const sub=subjects.find(s=>s.id===subId);if(!sub)return;dlgConfirm(`All tasks and assessments for "${sub.name}" will be permanently deleted.`,{icon:"🗑️",title:`Delete ${sub.name}?`,confirmText:"Delete",danger:true}).then(ok=>{if(!ok)return;subjects=subjects.filter(s=>s.id!==subId);delete appState[subId];save();closeSubModal();rebuildTrackers();rebuildAssessments();rebuildCountdowns();});}
 document.getElementById("sub-modal").addEventListener("click",function(e){if(e.target===this)closeSubModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSubModal();});
 const ASSESS_CIRC=2*Math.PI*33;
@@ -1197,9 +1206,7 @@ function assessMs(a){if(!a.due)return null;const[y,m,d]=a.due.split("-").map(Num
 function assessDays(ms){if(ms===null)return{t:"No date",ov:false};const days=Math.ceil(Math.abs(ms)/86400000);if(ms<0)return{t:days+"d",ov:true};if(days===0)return{t:"Today",ov:false};return{t:days+"d",ov:false};}
 function assessCD(ms){if(ms===null)return"";const a=Math.abs(ms),prefix=ms<0?"+ ":"";const d=Math.floor(a/86400000),h=Math.floor(a/3600000)%24,m=Math.floor(a/60000)%60,s=Math.floor(a/1000)%60;if(d>=1)return prefix+d+"d "+pad2(h)+"h "+pad2(m)+"m";if(h>=1)return prefix+pad2(h)+":"+pad2(m)+":"+pad2(s);return prefix+pad2(m)+":"+pad2(s);}
 function assessProg(ms){if(ms===null||ms<0)return 0;return Math.min(1,ms/(30*86400000));}
-function getEarliestAssessMs(subId){const pending=getAssess(subId).filter(a=>!a.done&&a.due);if(!pending.length)return Infinity;return Math.min(...pending.map(a=>assessMs(a)===null?Infinity:assessMs(a)));}
-function rebuildAssessments(){const g=document.getElementById("assess-grid");if(!g)return;g.innerHTML="";let ordered=[...subjects];if(cfg.assessSort){ordered=ordered.slice().sort((a,b)=>{const ma=getEarliestAssessMs(a.id),mb=getEarliestAssessMs(b.id);return ma-mb;});}ordered.forEach((sub,i)=>{g.appendChild(makeAssessCard(sub,i));renderAssessList(sub.id);});g.appendChild(makeAddSubCard("assess"));const btn=document.getElementById("assess-sort-btn");const icon=document.getElementById("assess-sort-icon");if(btn){btn.style.background=cfg.assessSort?"var(--text)":"";btn.style.color=cfg.assessSort?"var(--bg)":"var(--muted)";btn.style.borderColor=cfg.assessSort?"var(--text)":"var(--border)";}if(icon)icon.textContent=cfg.assessSort?"↑↓":"↕";}
-function toggleAssessSort(){cfg.assessSort=!cfg.assessSort;save();rebuildAssessments();}
+function rebuildAssessments(){const g=document.getElementById("assess-grid");if(!g)return;g.innerHTML="";let ordered=[...subjects];if(cfg.assessSort){ordered=ordered.slice().sort((a,b)=>getEarliestAssessMs(a.id)-getEarliestAssessMs(b.id));}ordered.forEach((sub,i)=>{g.appendChild(makeAssessCard(sub,i));renderAssessList(sub.id);});g.appendChild(makeAddSubCard("assess"));const btn=document.getElementById("assess-sort-btn");const icon=document.getElementById("assess-sort-icon");if(btn){btn.style.background=cfg.assessSort?"var(--text)":"";btn.style.color=cfg.assessSort?"var(--bg)":"var(--muted)";btn.style.borderColor=cfg.assessSort?"var(--text)":"var(--border)";}if(icon)icon.textContent=cfg.assessSort?"↑↓":"↕";}
 function makeAssessCard(sub,i){const c=document.createElement("div");c.className="card";c.id="ac-"+sub.id;c.style.animationDelay=(i*55)+"ms";const pending=getAssess(sub.id).filter(a=>!a.done).length;c.innerHTML=`<div class="card-hd"><span class="sub-dot" style="background:${sub.color}" onclick="openSubModal('${sub.id}')"></span><h2>${escH(sub.name)}</h2><span class="assess-count" id="acount-${sub.id}">${pending} pending</span><button class="icon-btn" onclick="openSubModal('${sub.id}')">${IC.edit}</button><button class="icon-btn danger" onclick="deleteSubject('${sub.id}')">${IC.del}</button></div><div class="assess-conf-bar" id="acb-${sub.id}"><div class="assess-conf-label">Assessment confidence</div><div class="assess-conf-track"><div class="assess-cs g" id="acbg-${sub.id}" style="width:0%"></div><div class="assess-cs a" id="acba-${sub.id}" style="width:0%"></div><div class="assess-cs r" id="acbr-${sub.id}" style="width:0%"></div></div></div><div class="assess-list" id="al-${sub.id}"></div><div class="add-assess-form" id="aaf-${sub.id}"><input autocomplete="off" class="aa-inp" id="aan-${sub.id}" type="text" placeholder="Assessment title..." maxlength="80" onkeydown="if(event.key==='Escape')closeAssessForm('${sub.id}')"><textarea autocomplete="off" class="aa-ta" id="aad-${sub.id}" placeholder="Description (optional)..." maxlength="300"></textarea><div class="aa-row"><span class="aa-lbl">Due</span><input autocomplete="off" class="aa-date" id="aadt-${sub.id}" type="date"><input autocomplete="off" class="aa-time" id="aatm-${sub.id}" type="time"></div><div class="aa-actions"><button class="btn-cancel" onclick="closeAssessForm('${sub.id}')">Cancel</button><button class="btn-confirm" style="background:var(--orange)" onclick="addAssess('${sub.id}')">Add assessment</button></div></div><div class="aa-open-wrap"><button class="aa-open-btn" id="aaob-${sub.id}" onclick="openAssessForm('${sub.id}')">${IC.plus} Add assessment</button></div>`;return c;}
 function renderAssessList(subId){const list=document.getElementById("al-"+subId);if(!list)return;const items=getAssess(subId);list.innerHTML="";if(!items.length){list.innerHTML='<div class="assess-empty">No assessments yet</div>';updateAssessCount(subId);updateAssessConfBar(subId);return;}items.forEach(a=>list.appendChild(renderAssessItem(a,subId)));updateAssessCount(subId);updateAssessConfBar(subId);}
 function renderAssessItem(a,subId){const ms=assessMs(a);const{t:dText,ov}=assessDays(ms);const prog=assessProg(ms);const offset=(ASSESS_CIRC*(1-prog)).toFixed(1);const liveCD=assessCD(ms);const el=document.createElement("div");el.className="ai"+(a.done?" done":"");el.id="ai-"+a.id;el.innerHTML=`<div class="ai-top"><div class="ai-ring-wrap"><svg class="ai-svg" viewBox="0 0 72 72"><circle class="ai-track" cx="36" cy="36" r="33"/><circle class="ai-ring${ov?" ov":""}" id="ar-${a.id}" cx="36" cy="36" r="33" stroke-dasharray="${ASSESS_CIRC.toFixed(1)}" stroke-dashoffset="${offset}"/></svg><div class="ai-center"><span class="ai-dnum${ov?" ov":""}" id="adn-${a.id}">${dText}</span><span class="ai-dlbl${ov?" ov":""}">${ov?"OVERDUE":"LEFT"}</span></div></div><div class="ai-info"><div class="ai-name">${escH(a.name)}</div>${a.desc?`<div class="ai-desc">${escH(a.desc)}</div>`:""}<div class="ai-badges">${a.due?`<span class="ai-badge${ov?" ov":""}">${IC.cal}${escH(staticLbl(a))}</span>`:""} ${a.due?`<span class="ai-livecd${ov?" ov":""}" id="acd-${a.id}">${liveCD}</span>`:""}</div><div class="ai-task-cd" id="aicd-${a.id}"></div></div></div>${!a.done?`<div class="ai-conf-row"><span class="ai-conf-lbl">Confidence</span><div class="ai-tl-lights"><button class="ai-tl-btn r ${a.confidence==='red'?'on ':'' }" onclick="setAssessConf('${subId}','${a.id}','red')"></button><button class="ai-tl-btn a ${a.confidence==='amber'?'on':'' }" onclick="setAssessConf('${subId}','${a.id}','amber')"></button><button class="ai-tl-btn g ${a.confidence==='green'?'on':'' }" onclick="setAssessConf('${subId}','${a.id}','green')"></button></div><span class="ai-conf-text">${a.confidence==='green'?'Fully confident':a.confidence==='amber'?'Somewhat confident':a.confidence==='red'?'Not confident':'Not rated'}</span></div><div class="ai-btns"><button class="ai-done-btn" onclick="markAssessDone('${subId}','${a.id}')">✓ Mark complete</button><button class="ai-del-btn" onclick="startAssessEdit('${subId}','${a.id}')">Edit</button><button class="ai-del-btn" onclick="delAssess('${subId}','${a.id}')">Delete</button></div><div class="ai-edit-form" id="aef-${a.id}"><input autocomplete="off" class="ai-edit-inp" id="aen-${a.id}" value="${escA(a.name)}" maxlength="80" placeholder="Assessment title..." onkeydown="if(event.key==='Escape')cancelAssessEdit('${a.id}')"><textarea autocomplete="off" class="ai-edit-ta" id="aed-${a.id}" maxlength="300" placeholder="Description (optional)...">${escH(a.desc||"")}</textarea><div class="ai-edit-row"><span class="ai-edit-lbl">Due</span><input autocomplete="off" class="ai-edit-date" id="aedt-${a.id}" type="date" value="${a.due||''}"><input autocomplete="off" class="ai-edit-time" id="aetm-${a.id}" type="time" value="${a.time||''}"></div><div class="ai-edit-actions"><button class="btn-cancel" onclick="cancelAssessEdit('${a.id}')">Cancel</button><button class="btn-confirm" style="background:var(--orange)" onclick="saveAssessEdit('${subId}','${a.id}')">Save</button></div></div>`:`<div class="ai-btns"><button class="ai-del-btn" style="width:100%;text-align:center;" onclick="delAssess('${subId}','${a.id}')">Delete</button></div>`}`;return el;}
@@ -1478,7 +1485,7 @@ function animConf(){CX.clearRect(0,0,CC.width,CC.height);cpieces.forEach(p=>{p.x
 function tick(){const clk=document.getElementById("tb-clock");if(clk&&cfg.clock)clk.textContent=new Date().toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true});subjects.forEach(sub=>{(appState[sub.id]?.tasks||[]).forEach(t=>{if(!t.due)return;const el=document.getElementById("cd-"+t.id);if(!el)return;const ms=msLeft(t),cls=dueClass(ms),isLive=ms!==null&&Math.abs(ms)<14*86400000,cd=isLive?cdText(ms):null;if(isLive&&cd){const prefix=ms<0?"+":"";el.className=`dbadge live ${cls}`;const v=el.querySelector(".cdv");if(v)v.textContent=prefix+cd;else el.innerHTML=`${IC.timer}<span class="cdv">${prefix}${cd}</span>`;}else{el.className=`dbadge ${cls}`;el.innerHTML=`${IC.cal}${escH(staticLbl(t))}`;}});});}
 function escH(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function escA(s){return String(s).replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
-load();buildSwatches();rebuildTrackers();rebuildAssessments();applyDark(cfg.dark);applySettings();loadMusicData();
+load();buildSwatches();rebuildTrackers();rebuildAssessments();rebuildCountdowns();applyDark(cfg.dark);applySettings();loadMusicData();
 // Restore user badge from last session if available
 (()=>{const d=localStorage.getItem("hsc_user_display");if(d)try{window._showUserBadge&&window._showUserBadge(JSON.parse(d));}catch(e){}})();
 const _today=new Date().toISOString().slice(0,10);
@@ -1491,7 +1498,288 @@ document.addEventListener("visibilitychange",()=>{
     pomoTick();
   }
 });
-updatePomoDisp();tick();setInterval(tick,1000);setInterval(tickAssess,1000);
+
+// ══════════════════════════════════════════════════════
+// COUNTDOWNS PAGE
+// ══════════════════════════════════════════════════════
+
+function getCDs(subId){return appState[subId]&&appState[subId].countdowns?appState[subId].countdowns:[];}
+function saveCDs(subId,arr){if(!appState[subId])appState[subId]={tasks:[],assessments:[],countdowns:[]};appState[subId].countdowns=arr;save();}
+
+function getEarliestCDMs(subId){
+  var pending=getCDs(subId).filter(function(c){return !c.done&&c.due;});
+  if(!pending.length)return Infinity;
+  return Math.min.apply(null,pending.map(function(c){var m=assessMs(c);return m===null?Infinity:m;}));
+}
+
+function rebuildCountdowns(){
+  var g=document.getElementById("cd-grid");
+  if(!g)return;
+  g.innerHTML="";
+  if(!subjects.length){
+    var e=document.createElement("div");
+    e.style.cssText="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:28px;";
+    var ac=makeCDAddSubCard();
+    ac.style.cssText="width:100%;max-width:420px;";
+    e.appendChild(ac);
+    g.appendChild(e);
+    return;
+  }
+  var ordered=subjects.slice();
+  if(cfg.cdSort){
+    ordered.sort(function(a,b){return getEarliestCDMs(a.id)-getEarliestCDMs(b.id);});
+  }
+  ordered.forEach(function(sub,i){g.appendChild(makeCDCard(sub,i));renderCDList(sub.id);});
+  g.appendChild(makeCDAddSubCard());
+  var btn=document.getElementById("cd-sort-btn");
+  var icon=document.getElementById("cd-sort-icon");
+  if(btn){btn.style.background=cfg.cdSort?"var(--text)":"";btn.style.color=cfg.cdSort?"var(--bg)":"var(--muted)";btn.style.borderColor=cfg.cdSort?"var(--text)":"var(--border)";}
+  if(icon)icon.textContent=cfg.cdSort?"↑↓":"↕";
+}
+
+function toggleCdSort(){cfg.cdSort=!cfg.cdSort;save();rebuildCountdowns();}
+
+function makeCDAddSubCard(){
+  var ac=document.createElement("div");
+  ac.className="add-sub-card";
+  ac.id="cd-add-sub";
+  ac.innerHTML='<div class="add-sub-plus">+</div><div class="add-sub-lbl">Add subject</div>';
+  ac.onclick=function(){showNewSubForm("cd");};
+  return ac;
+}
+
+function makeCDCard(sub,i){
+  var c=document.createElement("div");
+  c.className="card";
+  c.id="cdc-"+sub.id;
+  c.style.animationDelay=(i*55)+"ms";
+  var pending=getCDs(sub.id).filter(function(a){return !a.done;}).length;
+  c.innerHTML=
+    '<div class="card-hd">'+
+      '<span class="sub-dot" style="background:'+sub.color+'" onclick="openSubModal(\''+sub.id+'\')"></span>'+
+      '<h2>'+escH(sub.name)+'</h2>'+
+      '<span class="assess-count" id="cdcount-'+sub.id+'">'+pending+' pending</span>'+
+      '<button class="icon-btn" onclick="openSubModal(\''+sub.id+'\')">'+IC.edit+'</button>'+
+      '<button class="icon-btn danger" onclick="deleteSubject(\''+sub.id+'\')">'+IC.del+'</button>'+
+    '</div>'+
+    '<div class="assess-list" id="cdl-'+sub.id+'"></div>'+
+    '<div class="add-assess-form" id="cdaf-'+sub.id+'">'+
+      '<input autocomplete="off" class="aa-inp" id="cdan-'+sub.id+'" type="text" placeholder="Countdown title..." maxlength="80" onkeydown="if(event.key===\'Escape\')closeCDForm(\''+sub.id+'\')">'+
+      '<textarea autocomplete="off" class="aa-ta" id="cdad-'+sub.id+'" placeholder="Description (optional)..." maxlength="300"></textarea>'+
+      '<div class="aa-row">'+
+        '<span class="aa-lbl">Due</span>'+
+        '<input autocomplete="off" class="aa-date" id="cdadt-'+sub.id+'" type="date">'+
+        '<input autocomplete="off" class="aa-time" id="cdatm-'+sub.id+'" type="time">'+
+      '</div>'+
+      '<div class="aa-actions">'+
+        '<button class="btn-cancel" onclick="closeCDForm(\''+sub.id+'\')">Cancel</button>'+
+        '<button class="btn-confirm" style="background:var(--blue)" onclick="addCD(\''+sub.id+'\')">Add countdown</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="aa-open-wrap">'+
+      '<button class="aa-open-btn" id="cdob-'+sub.id+'" onclick="openCDForm(\''+sub.id+'\')" style="color:var(--blue)">'+IC.plus+' Add countdown</button>'+
+    '</div>';
+  return c;
+}
+
+function renderCDList(subId){
+  var list=document.getElementById("cdl-"+subId);
+  if(!list)return;
+  var items=getCDs(subId);
+  list.innerHTML="";
+  if(!items.length){list.innerHTML='<div class="assess-empty">No countdowns yet</div>';updateCDCount(subId);return;}
+  items.forEach(function(a){list.appendChild(renderCDItem(a,subId));});
+  updateCDCount(subId);
+}
+
+function renderCDItem(a,subId){
+  var ms=assessMs(a);
+  var d=assessDays(ms);
+  var dText=d.t;var ov=d.ov;
+  var prog=assessProg(ms);
+  var offset=(ASSESS_CIRC*(1-prog)).toFixed(1);
+  var liveCD=assessCD(ms);
+  var el=document.createElement("div");
+  el.className="ai"+(a.done?" done":"");
+  el.id="cdi-"+a.id;
+  var ringCls="ai-ring"+(ov?" ov":"");
+  var dnCls="ai-dnum"+(ov?" ov":"");
+  var dlCls="ai-dlbl"+(ov?" ov":"");
+  var bdgCls="ai-badge"+(ov?" ov":"");
+  var lcdCls="ai-livecd"+(ov?" ov":"");
+  var badgeHTML=a.due
+    ?('<span class="'+bdgCls+'">'+IC.cal+escH(staticLbl(a))+'</span> <span class="'+lcdCls+'" id="cdcd-'+a.id+'">'+liveCD+'</span>')
+    :'';
+  var descHTML=a.desc?('<div class="ai-desc">'+escH(a.desc)+'</div>'):'';
+  var editForm=
+    '<div class="ai-edit-form" id="cdef-'+a.id+'">'+
+      '<input autocomplete="off" class="ai-edit-inp" id="cden-'+a.id+'" value="'+escA(a.name)+'" maxlength="80" placeholder="Countdown title..." onkeydown="if(event.key===\'Escape\')cancelCDEdit(\''+a.id+'\')">'+
+      '<textarea autocomplete="off" class="ai-edit-ta" id="cded-'+a.id+'" maxlength="300" placeholder="Description (optional)...">'+escH(a.desc||'')+'</textarea>'+
+      '<div class="ai-edit-row">'+
+        '<span class="ai-edit-lbl">Due</span>'+
+        '<input autocomplete="off" class="ai-edit-date" id="cdedt-'+a.id+'" type="date" value="'+(a.due||'')+'">'+
+        '<input autocomplete="off" class="ai-edit-time" id="cdetm-'+a.id+'" type="time" value="'+(a.time||'')+'">'+
+      '</div>'+
+      '<div class="ai-edit-actions">'+
+        '<button class="btn-cancel" onclick="cancelCDEdit(\''+a.id+'\')">Cancel</button>'+
+        '<button class="btn-confirm" style="background:var(--blue)" onclick="saveCDEdit(\''+subId+'\',\''+a.id+'\')">Save</button>'+
+      '</div>'+
+    '</div>';
+  var activeSection=
+    '<div class="ai-btns">'+
+      '<button class="ai-done-btn" style="background:var(--blue)" onclick="markCDDone(\''+subId+'\',\''+a.id+'\')">✓ Mark complete</button>'+
+      '<button class="ai-del-btn" onclick="startCDEdit(\''+subId+'\',\''+a.id+'\')">Edit</button>'+
+      '<button class="ai-del-btn" onclick="delCD(\''+subId+'\',\''+a.id+'\')">Delete</button>'+
+    '</div>'+editForm;
+  var doneSection=
+    '<div class="ai-btns">'+
+      '<button class="ai-del-btn" style="width:100%;text-align:center;" onclick="delCD(\''+subId+'\',\''+a.id+'\')">Delete</button>'+
+    '</div>';
+  el.innerHTML=
+    '<div class="ai-top">'+
+      '<div class="ai-ring-wrap">'+
+        '<svg class="ai-svg" viewBox="0 0 72 72">'+
+          '<circle class="ai-track" cx="36" cy="36" r="33"/>'+
+          '<circle class="'+ringCls+'" id="cdr-'+a.id+'" cx="36" cy="36" r="33" stroke-dasharray="'+ASSESS_CIRC.toFixed(1)+'" stroke-dashoffset="'+offset+'"/>'+
+        '</svg>'+
+        '<div class="ai-center">'+
+          '<span class="'+dnCls+'" id="cddn-'+a.id+'">'+dText+'</span>'+
+          '<span class="'+dlCls+'">'+(ov?'OVERDUE':'LEFT')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="ai-info">'+
+        '<div class="ai-name">'+escH(a.name)+'</div>'+
+        descHTML+
+        '<div class="ai-badges">'+badgeHTML+'</div>'+
+        '<div class="ai-task-cd" id="cdicd-'+a.id+'"></div>'+
+      '</div>'+
+    '</div>'+
+    (!a.done?activeSection:doneSection);
+  return el;
+}
+
+function updateCDCount(subId){
+  var b=document.getElementById("cdcount-"+subId);
+  if(!b)return;
+  b.textContent=getCDs(subId).filter(function(a){return !a.done;}).length+" pending";
+}
+
+function openCDForm(subId){
+  document.getElementById("cdaf-"+subId).classList.add("open");
+  document.getElementById("cdob-"+subId).style.display="none";
+  document.getElementById("cdan-"+subId).focus();
+}
+
+function closeCDForm(subId){
+  document.getElementById("cdaf-"+subId).classList.remove("open");
+  document.getElementById("cdan-"+subId).value="";
+  document.getElementById("cdad-"+subId).value="";
+  document.getElementById("cdadt-"+subId).value="";
+  document.getElementById("cdatm-"+subId).value="";
+  document.getElementById("cdob-"+subId).style.display="";
+}
+
+function addCD(subId){
+  var name=document.getElementById("cdan-"+subId).value.trim();
+  if(!name){document.getElementById("cdan-"+subId).focus();return;}
+  var desc=document.getElementById("cdad-"+subId).value.trim();
+  var due=document.getElementById("cdadt-"+subId).value||null;
+  var time=document.getElementById("cdatm-"+subId).value||null;
+  var arr=getCDs(subId);
+  arr.push({id:uid(),name:name,desc:desc,due:due,time:time,done:false});
+  saveCDs(subId,arr);
+  closeCDForm(subId);
+  renderCDList(subId);
+}
+
+function startCDEdit(subId,itemId){
+  var a=getCDs(subId).find(function(x){return x.id===itemId;});
+  if(!a)return;
+  var f=document.getElementById("cdef-"+itemId);
+  if(f)f.classList.add("open");
+  var ta=document.getElementById("cded-"+itemId);
+  if(ta)ta.value=a.desc||"";
+}
+
+function cancelCDEdit(itemId){
+  var f=document.getElementById("cdef-"+itemId);
+  if(f)f.classList.remove("open");
+}
+
+function saveCDEdit(subId,itemId){
+  var arr=getCDs(subId);
+  var a=arr.find(function(x){return x.id===itemId;});
+  if(!a)return;
+  var n=document.getElementById("cden-"+itemId);
+  if(!n||!n.value.trim())return;
+  a.name=n.value.trim();
+  var td=document.getElementById("cded-"+itemId);
+  a.desc=td?td.value.trim():"";
+  var dd=document.getElementById("cdedt-"+itemId);
+  a.due=dd?dd.value||null:null;
+  var tm=document.getElementById("cdetm-"+itemId);
+  a.time=tm?tm.value||null:null;
+  saveCDs(subId,arr);
+  renderCDList(subId);
+}
+
+function markCDDone(subId,itemId){
+  var arr=getCDs(subId);
+  var a=arr.find(function(x){return x.id===itemId;});
+  if(!a)return;
+  a.done=true;
+  saveCDs(subId,arr);
+  renderCDList(subId);
+  var el=document.getElementById("cdi-"+itemId);
+  if(el){
+    el.classList.add("fading");
+    var secs=5;
+    var cdEl=document.getElementById("cdicd-"+itemId);
+    if(cdEl)cdEl.textContent="Deleting in "+secs+"s...";
+    var iv=setInterval(function(){
+      secs--;
+      var e=document.getElementById("cdi-"+itemId);
+      if(!e){clearInterval(iv);return;}
+      var cd=document.getElementById("cdicd-"+itemId);
+      if(secs>0){if(cd)cd.textContent="Deleting in "+secs+"s...";}
+      else{clearInterval(iv);delCD(subId,itemId);}
+    },1000);
+  }
+  launchConfetti();
+}
+
+function delCD(subId,itemId){
+  saveCDs(subId,getCDs(subId).filter(function(a){return a.id!==itemId;}));
+  renderCDList(subId);
+}
+
+function tickCountdowns(){
+  subjects.forEach(function(sub){
+    getCDs(sub.id).filter(function(a){return !a.done;}).forEach(function(a){
+      var ms=assessMs(a);
+      var d=assessDays(ms);
+      var prog=assessProg(ms);
+      var offset=(ASSESS_CIRC*(1-prog)).toFixed(1);
+      var ring=document.getElementById("cdr-"+a.id);
+      if(ring){ring.setAttribute("stroke-dashoffset",offset);ring.className="ai-ring"+(d.ov?" ov":"");}
+      var dn=document.getElementById("cddn-"+a.id);
+      if(dn){dn.textContent=d.t;dn.className="ai-dnum"+(d.ov?" ov":"");}
+      var cd=document.getElementById("cdcd-"+a.id);
+      if(cd){cd.textContent=assessCD(ms);cd.className="ai-livecd"+(d.ov?" ov":"");}
+    });
+  });
+}
+
+// also wire assessments sort toggle
+function getEarliestAssessMs(subId){
+  var pending=getAssess(subId).filter(function(a){return !a.done&&a.due;});
+  if(!pending.length)return Infinity;
+  return Math.min.apply(null,pending.map(function(a){var m=assessMs(a);return m===null?Infinity:m;}));
+}
+
+function toggleAssessSort(){cfg.assessSort=!cfg.assessSort;save();rebuildAssessments();}
+
+updatePomoDisp();tick();setInterval(tick,1000);setInterval(tickAssess,1000);setInterval(tickCountdowns,1000);
 </script>
 </body>
 </html>
