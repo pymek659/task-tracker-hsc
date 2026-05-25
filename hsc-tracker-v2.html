@@ -494,6 +494,43 @@ body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-
 
 .credits{text-align:center;margin-top:44px;padding-top:22px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);letter-spacing:0.08em;line-height:2.2;}
 #confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:9999;width:100%;height:100%;}
+
+/* ── Countdowns card sizing ─────────────────────────────── */
+#cd-grid{grid-template-columns:repeat(12,1fr);align-items:start;}
+#cd-grid .card.cd-sm{grid-column:span 3;}
+#cd-grid .card.cd-md{grid-column:span 5;}
+#cd-grid .card.cd-lg{grid-column:span 7;}
+#cd-grid .add-sub-card{grid-column:span 3;}
+@media(max-width:1100px){
+  #cd-grid .card.cd-sm{grid-column:span 4;}
+  #cd-grid .card.cd-md{grid-column:span 6;}
+  #cd-grid .card.cd-lg{grid-column:span 12;}
+  #cd-grid .add-sub-card{grid-column:span 4;}
+}
+@media(max-width:768px){
+  #cd-grid{grid-template-columns:1fr;}
+  #cd-grid .card.cd-sm,#cd-grid .card.cd-md,#cd-grid .card.cd-lg{grid-column:span 1;}
+  #cd-grid .add-sub-card{grid-column:span 1;}
+}
+.cd-size-picker{display:flex;gap:4px;align-items:center;margin-left:auto;}
+.cd-sz-btn{width:26px;height:20px;border-radius:5px;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:1.5px;padding:0 4px;transition:background 0.12s,border-color 0.12s;flex-shrink:0;}
+.cd-sz-btn:hover{border-color:var(--blue);background:var(--surface);}
+.cd-sz-btn.active{border-color:var(--blue);background:var(--blue);} 
+.cd-sz-btn.active .cd-sz-bar{background:#fff;}
+.cd-sz-bar{border-radius:1px;background:var(--muted);transition:background 0.12s;}
+/* bar patterns per size */
+.cd-sz-btn[data-sz="sm"] .cd-sz-bar:nth-child(1){width:3px;height:8px;}
+.cd-sz-btn[data-sz="sm"] .cd-sz-bar:nth-child(2){width:3px;height:12px;}
+.cd-sz-btn[data-sz="sm"] .cd-sz-bar:nth-child(3){width:3px;height:8px;}
+.cd-sz-btn[data-sz="md"] .cd-sz-bar:nth-child(1){width:3px;height:8px;}
+.cd-sz-btn[data-sz="md"] .cd-sz-bar:nth-child(2){width:3px;height:14px;}
+.cd-sz-btn[data-sz="md"] .cd-sz-bar:nth-child(3){width:3px;height:10px;}
+.cd-sz-btn[data-sz="md"] .cd-sz-bar:nth-child(4){width:3px;height:14px;}
+.cd-sz-btn[data-sz="lg"] .cd-sz-bar:nth-child(1){width:3px;height:10px;}
+.cd-sz-btn[data-sz="lg"] .cd-sz-bar:nth-child(2){width:3px;height:14px;}
+.cd-sz-btn[data-sz="lg"] .cd-sz-bar:nth-child(3){width:3px;height:12px;}
+.cd-sz-btn[data-sz="lg"] .cd-sz-bar:nth-child(4){width:3px;height:14px;}
+.cd-sz-btn[data-sz="lg"] .cd-sz-bar:nth-child(5){width:3px;height:10px;}
 </style>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -1539,6 +1576,22 @@ function rebuildCountdowns(){
 
 function toggleCdSort(){cfg.cdSort=!cfg.cdSort;save();rebuildCountdowns();}
 
+function setCDSize(subId,sz){
+  if(!cfg.cdSizes)cfg.cdSizes={};
+  cfg.cdSizes[subId]=sz;
+  save();
+  // update card class without full rebuild
+  var c=document.getElementById("cdc-"+subId);
+  if(c){
+    c.className=c.className.replace(/cd-(sm|md|lg)/,'cd-'+sz);
+  }
+  // update active state on the buttons
+  var btns=document.querySelectorAll("#cdc-"+subId+" .cd-sz-btn");
+  btns.forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-sz')===sz);
+  });
+}
+
 function makeCDAddSubCard(){
   var ac=document.createElement("div");
   ac.className="add-sub-card";
@@ -1549,20 +1602,28 @@ function makeCDAddSubCard(){
 }
 
 function makeCDCard(sub,i){
+  if(!cfg.cdSizes)cfg.cdSizes={};
+  var sz=cfg.cdSizes[sub.id]||'md';
   var c=document.createElement("div");
-  c.className="card";
+  c.className="card cd-"+sz;
   c.id="cdc-"+sub.id;
   c.style.animationDelay=(i*55)+"ms";
   var pending=getCDs(sub.id).filter(function(a){return !a.done;}).length;
+  function szBtn(s,bars){
+    var active=sz===s?'active':'';
+    var b='<button class="cd-sz-btn '+active+'" data-sz="'+s+'" onclick="setCDSize(\''+sub.id+'\',\''+s+'\')" title="'+{sm:'Small',md:'Medium',lg:'Large'}[s]+'">';
+    for(var k=0;k<bars;k++)b+='<span class="cd-sz-bar"></span>';
+    return b+'</button>';
+  }
   c.innerHTML=
     '<div class="card-hd">'+
       '<span class="sub-dot" style="background:'+sub.color+'" onclick="openSubModal(\''+sub.id+'\')"></span>'+
       '<h2>'+escH(sub.name)+'</h2>'+
       '<span class="assess-count" id="cdcount-'+sub.id+'">'+pending+' pending</span>'+
+      '<div class="cd-size-picker">'+szBtn('sm',3)+szBtn('md',4)+szBtn('lg',5)+'</div>'+
       '<button class="icon-btn" onclick="openSubModal(\''+sub.id+'\')">'+IC.edit+'</button>'+
       '<button class="icon-btn danger" onclick="deleteSubject(\''+sub.id+'\')">'+IC.del+'</button>'+
-    '</div>'+
-    '<div class="assess-list" id="cdl-'+sub.id+'"></div>'+
+    '</div>'+    '<div class="assess-list" id="cdl-'+sub.id+'"></div>'+
     '<div class="add-assess-form" id="cdaf-'+sub.id+'">'+
       '<input autocomplete="off" class="aa-inp" id="cdan-'+sub.id+'" type="text" placeholder="Countdown title..." maxlength="80" onkeydown="if(event.key===\'Escape\')closeCDForm(\''+sub.id+'\')">'+
       '<textarea autocomplete="off" class="aa-ta" id="cdad-'+sub.id+'" placeholder="Description (optional)..." maxlength="300"></textarea>'+
